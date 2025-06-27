@@ -1,0 +1,2359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent Orchestrator Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --white: #ffffff;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: var(--white);
+            box-shadow: var(--shadow);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+        }
+        
+        .sidebar {
+            background: var(--white);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            height: fit-content;
+            position: sticky;
+            top: 80px;
+        }
+        
+        .sidebar h2 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+        
+        .nav-menu {
+            list-style: none;
+        }
+        
+        .nav-item {
+            margin-bottom: 0.5rem;
+        }
+        
+        .nav-link {
+            display: block;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            color: var(--dark);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .nav-link:hover {
+            background: var(--light);
+            color: var(--primary);
+        }
+        
+        .nav-link.active {
+            background: var(--primary);
+            color: var(--white);
+        }
+        
+        .main-content {
+            background: var(--white);
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            min-height: 600px;
+        }
+        
+        .section {
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+        }
+        
+        .section-header {
+            margin-bottom: 2rem;
+        }
+        
+        .section-header h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-header p {
+            color: #6b7280;
+        }
+        
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .action-card {
+            background: var(--light);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .action-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+        
+        .action-card p {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+        
+        .btn {
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .terminal {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            height: 400px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+        
+        .terminal-line {
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .status-card {
+            background: var(--light);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .status-card h4 {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--dark);
+        }
+        
+        .agent-list {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .agent-item {
+            background: var(--light);
+            padding: 1rem;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .agent-info h4 {
+            margin-bottom: 0.25rem;
+        }
+        
+        .agent-info p {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+        
+        .agent-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .status-badge.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-badge.idle {
+            background: #e5e7eb;
+            color: #4b5563;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-header h3 {
+            font-size: 1.25rem;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        
+        .close-btn:hover {
+            color: var(--dark);
+        }
+        
+        .tab-nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            color: #6b7280;
+            font-size: 1rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .progress-bar {
+            background: var(--light);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        
+        .progress-fill {
+            background: var(--primary);
+            height: 100%;
+            transition: width 0.3s;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .alert-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .form-check {
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-check input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+        
+        .form-check label {
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+        
+        /* Wizard Styles */
+        .wizard-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .wizard-steps {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .wizard-step {
+            flex: 1;
+            min-width: 200px;
+            background: rgba(255,255,255,0.1);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .wizard-step.active {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.5);
+            transform: scale(1.02);
+        }
+        
+        .wizard-step.completed {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .wizard-step.completed .step-number {
+            background: #10b981;
+        }
+        
+        .step-content h4 {
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+        
+        .step-content p {
+            margin-bottom: 1rem;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .wizard-container .form-control {
+            background: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.5);
+            color: var(--dark);
+        }
+        
+        .wizard-container .btn {
+            background: white;
+            color: #667eea;
+            font-weight: 500;
+        }
+        
+        .wizard-container .btn:hover {
+            background: #f3f4f6;
+            transform: translateY(-1px);
+        }
+        
+        .wizard-container .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .wizard-container .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .wizard-progress {
+            margin-top: 2rem;
+        }
+        
+        .wizard-progress .progress-bar {
+            background: rgba(255,255,255,0.3);
+            height: 12px;
+            border-radius: 6px;
+        }
+        
+        .wizard-progress .progress-fill {
+            background: white;
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+        
+        #repo-status, #master-status, #tickets-status, #assign-status, #integration-status {
+            font-size: 0.9rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+        
+        .status-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+        
+        .status-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+        
+        .status-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        /* Results Summary Styles */
+        .results-container {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .summary-card {
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        
+        .summary-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .summary-card.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .summary-card.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .summary-card.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .summary-card.primary {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        
+        .summary-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+        
+        .summary-details {
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        
+        .ticket-results {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .ticket-result-item {
+            background: var(--light);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .ticket-result-item.success {
+            border-left-color: var(--success);
+        }
+        
+        .ticket-result-item.warning {
+            border-left-color: var(--warning);
+        }
+        
+        .ticket-result-item h5 {
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .ticket-result-details {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .file-change {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0;
+            font-size: 0.9rem;
+        }
+        
+        .file-change.added {
+            color: #065f46;
+        }
+        
+        .file-change.modified {
+            color: #92400e;
+        }
+        
+        .file-change.deleted {
+            color: #991b1b;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: var(--white);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>
+            <span class="status-indicator"></span>
+            Multi-Agent Orchestrator
+        </h1>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Navigation</h2>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a class="nav-link active" onclick="showSection('dashboard')">
+                            📊 Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showSection('agents')">
+                            🤖 Agents
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showSection('tickets')">
+                            📋 Tickets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showSection('ai-workflow')">
+                            🧠 AI Workflow
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showSection('monitoring')">
+                            📈 Monitoring
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" onclick="showSection('terminal')">
+                            💻 Terminal
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+            <div class="section-header">
+            <h2>Dashboard</h2>
+            <p>Overview of your multi-agent development system</p>
+            </div>
+
+            <!-- Results Summary Panel -->
+                <div id="results-summary" class="results-container" style="display: none;">
+                    <h3 style="margin-bottom: 1rem;">📊 Execution Summary</h3>
+                    <div class="summary-grid">
+                        <div class="summary-card success">
+                            <h4>✅ Completed</h4>
+                            <div class="summary-value" id="completed-count">0</div>
+                            <div class="summary-details" id="completed-list"></div>
+                        </div>
+                        <div class="summary-card warning">
+                            <h4>⚠️ Issues</h4>
+                            <div class="summary-value" id="issues-count">0</div>
+                            <div class="summary-details" id="issues-list"></div>
+                        </div>
+                        <div class="summary-card info">
+                            <h4>📝 Changes</h4>
+                            <div class="summary-value" id="changes-count">0</div>
+                            <div class="summary-details" id="changes-list"></div>
+                        </div>
+                        <div class="summary-card primary">
+                            <h4>⏱️ Duration</h4>
+                            <div class="summary-value" id="duration-time">0m</div>
+                            <div class="summary-details" id="timing-details"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="detailed-results" style="margin-top: 2rem;">
+                        <h4>📋 Detailed Ticket Results</h4>
+                        <div id="ticket-results-list" class="ticket-results">
+                            <!-- Ticket results will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                        <button class="btn" onclick="downloadSummary()">💾 Download Report</button>
+                        <button class="btn btn-secondary" onclick="viewGitChanges()">🔍 View Git Changes</button>
+                        <button class="btn btn-success" onclick="resetWizard()">🔄 New Workflow</button>
+                    </div>
+                </div>
+
+                <!-- Workflow Wizard -->
+                <div id="workflow-wizard" class="wizard-container">
+                    <h3 style="margin-bottom: 1rem;">🧙 Workflow Wizard</h3>
+                    <div class="wizard-steps">
+                        <div class="wizard-step active" id="step-1">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <h4>Select Repository</h4>
+                                <p>Choose which project to work on</p>
+                                <select class="form-control" id="wizard-repo" onchange="wizardRepoSelected()">
+                                    <option value="">-- Select Repository --</option>
+                                    <option value="/Users/copp1723/Desktop/rylie-seo-hub-v2">rylie-seo-hub-v2</option>
+                                    <option value="/Users/copp1723/Desktop/multi-agent-orchestrator">multi-agent-orchestrator</option>
+                                    <option value="/Users/copp1723/Desktop/CCL-3">CCL-3</option>
+                                    <option value="/Users/copp1723/Desktop/commercial foundation swarm">commercial foundation swarm</option>
+                                    <option value="/Users/copp1723/Desktop/master-agent-system-copy">master-agent-system-copy</option>
+                                    <option value="/Users/copp1723/Desktop/swarm_pwa">swarm_pwa</option>
+                                    <option value="/Users/copp1723/Desktop/swarm_pwa_backup">swarm_pwa_backup</option>
+                                    <option value="/Users/copp1723/Desktop/voice-agent-fresh-main">voice-agent-fresh-main</option>
+                                    <option value="/Users/copp1723/Desktop/Old ATS">Old ATS</option>
+                                    <option value="/Users/copp1723/Desktop/Personal">Personal</option>
+                                    <option value="/Users/copp1723/Desktop/[expired] repos">[expired] repos</option>
+                                    <option value="/Users/copp1723/Desktop/real data files">real data files</option>
+                                    <option value="/Users/copp1723/Desktop/working_projects">working_projects</option>
+                                    <option value="custom">➕ Custom Path...</option>
+                                </select>
+                                <input type="text" class="form-control" id="wizard-custom-repo" placeholder="Enter custom repository path" style="display: none; margin-top: 0.5rem; background: rgba(255,255,255,0.9); color: var(--dark);" onblur="wizardCustomRepo()">
+                                <div id="repo-status" style="margin-top: 0.5rem;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="wizard-step" id="step-2">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <h4>Initialize Master</h4>
+                                <p>Set up oversight system</p>
+                                <button class="btn" id="wizard-init-btn" onclick="wizardInitMaster()" disabled>
+                                    Initialize Master Agent
+                                </button>
+                                <div id="master-status" style="margin-top: 0.5rem;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="wizard-step" id="step-3">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <h4>Load Tickets</h4>
+                                <p>Import or create tasks</p>
+                                <button class="btn" id="wizard-tickets-btn" onclick="wizardLoadTickets()" disabled>
+                                    Load Tickets from File
+                                </button>
+                                <div id="tickets-status" style="margin-top: 0.5rem;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="wizard-step" id="step-4">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <h4>Assign Agents</h4>
+                                <p>Distribute work to AI agents</p>
+                                <select class="form-control" id="wizard-mode" disabled>
+                                    <option value="full">Full AI Mode (Recommended)</option>
+                                    <option value="hybrid">Hybrid Mode</option>
+                                    <option value="manual">Manual Mode</option>
+                                </select>
+                                <button class="btn" id="wizard-assign-btn" onclick="wizardAssignAgents()" disabled style="margin-top: 0.5rem;">
+                                    Auto-Assign All Tickets
+                                </button>
+                                <div id="assign-status" style="margin-top: 0.5rem;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="wizard-step" id="step-5">
+                            <div class="step-number">5</div>
+                            <div class="step-content">
+                                <h4>Run Integration</h4>
+                                <p>Merge all completed work</p>
+                                <button class="btn btn-success" id="wizard-integrate-btn" onclick="wizardRunIntegration()" disabled>
+                                    Run Master Integration
+                                </button>
+                                <div id="integration-status" style="margin-top: 0.5rem;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="wizard-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="wizard-progress" style="width: 20%"></div>
+                        </div>
+                        <p style="text-align: center; margin-top: 0.5rem;">
+                            Step <span id="current-step">1</span> of 5
+                        </p>
+                    </div>
+                </div>
+
+                <div class="status-grid">
+                    <div class="status-card">
+                        <h4>Active Agents</h4>
+                        <div class="value">3</div>
+                    </div>
+                    <div class="status-card">
+                        <h4>Pending Tickets</h4>
+                        <div class="value">12</div>
+                    </div>
+                    <div class="status-card">
+                        <h4>API Usage Today</h4>
+                        <div class="value">$4.25</div>
+                    </div>
+                    <div class="status-card">
+                        <h4>Success Rate</h4>
+                        <div class="value">94%</div>
+                    </div>
+                </div>
+
+                <h3 style="margin-bottom: 1rem;">Quick Actions</h3>
+                <div class="action-grid">
+                    <div class="action-card" onclick="openModal('create-ticket')">
+                        <h3>🎫 Create Ticket</h3>
+                        <p>Define a new development task</p>
+                    </div>
+                    <div class="action-card" onclick="openModal('assign-agent')">
+                        <h3>🤖 Assign Agent</h3>
+                        <p>Assign ticket to an AI agent</p>
+                    </div>
+                    <div class="action-card" onclick="runMasterIntegration()">
+                        <h3>🔄 Run Integration</h3>
+                        <p>Merge all agent work</p>
+                    </div>
+                    <div class="action-card" onclick="openModal('view-status')">
+                        <h3>📊 View Status</h3>
+                        <p>Check system status</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Agents Section -->
+            <section id="agents" class="section">
+                <div class="section-header">
+                    <h2>Agent Management</h2>
+                    <p>Control and monitor your AI agents</p>
+                </div>
+
+                <div class="agent-list">
+                    <div class="agent-item">
+                        <div class="agent-info">
+                            <h4>Frontend Agent</h4>
+                            <p>Working on: TICKET-005 - Add SEO Prompts</p>
+                        </div>
+                        <div class="agent-status">
+                            <span class="status-badge active">Active</span>
+                            <button class="btn btn-secondary" onclick="viewAgentDetails('frontend')">View</button>
+                        </div>
+                    </div>
+                    <div class="agent-item">
+                        <div class="agent-info">
+                            <h4>Backend Agent</h4>
+                            <p>Status: Idle</p>
+                        </div>
+                        <div class="agent-status">
+                            <span class="status-badge idle">Idle</span>
+                            <button class="btn btn-secondary" onclick="viewAgentDetails('backend')">View</button>
+                        </div>
+                    </div>
+                    <div class="agent-item">
+                        <div class="agent-info">
+                            <h4>Database Agent</h4>
+                            <p>Status: Idle</p>
+                        </div>
+                        <div class="agent-status">
+                            <span class="status-badge idle">Idle</span>
+                            <button class="btn btn-secondary" onclick="viewAgentDetails('database')">View</button>
+                        </div>
+                    </div>
+                    <div class="agent-item">
+                        <div class="agent-info">
+                            <h4>Master Agent</h4>
+                            <p>Overseeing all operations</p>
+                        </div>
+                        <div class="agent-status">
+                            <span class="status-badge active">Active</span>
+                            <button class="btn btn-secondary" onclick="viewAgentDetails('master')">View</button>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin: 2rem 0 1rem;">Agent Actions</h3>
+                <div class="action-grid">
+                    <div class="action-card" onclick="initializeMasterAgent()">
+                        <h3>🎯 Initialize Master</h3>
+                        <p>Set up master agent oversight</p>
+                    </div>
+                    <div class="action-card" onclick="runAgentTask()">
+                        <h3>📝 Create Agent Task</h3>
+                        <p>Manually assign work to agent</p>
+                    </div>
+                    <div class="action-card" onclick="checkAgentStatus()">
+                        <h3>📊 Check Status</h3>
+                        <p>View all agent statuses</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tickets Section -->
+            <section id="tickets" class="section">
+                <div class="section-header">
+                    <h2>Ticket Management</h2>
+                    <p>Manage development tickets and assignments</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Select Repository</label>
+                    <select class="form-control" id="repo-selector" onchange="updateSelectedRepo()">
+                        <option value="/Users/copp1723/Desktop/rylie-seo-hub-v2">rylie-seo-hub-v2</option>
+                        <option value="/Users/copp1723/Desktop/multi-agent-orchestrator">multi-agent-orchestrator</option>
+                        <option value="/Users/copp1723/Desktop/CCL-3">CCL-3</option>
+                        <option value="/Users/copp1723/Desktop/commercial foundation swarm">commercial foundation swarm</option>
+                        <option value="/Users/copp1723/Desktop/master-agent-system-copy">master-agent-system-copy</option>
+                        <option value="/Users/copp1723/Desktop/swarm_pwa">swarm_pwa</option>
+                        <option value="/Users/copp1723/Desktop/swarm_pwa_backup">swarm_pwa_backup</option>
+                        <option value="/Users/copp1723/Desktop/voice-agent-fresh-main">voice-agent-fresh-main</option>
+                        <option value="/Users/copp1723/Desktop/Old ATS">Old ATS</option>
+                        <option value="/Users/copp1723/Desktop/Personal">Personal</option>
+                        <option value="/Users/copp1723/Desktop/[expired] repos">[expired] repos</option>
+                        <option value="/Users/copp1723/Desktop/real data files">real data files</option>
+                        <option value="/Users/copp1723/Desktop/working_projects">working_projects</option>
+                        <option value="custom">➕ Custom Path...</option>
+                    </select>
+                    <input type="text" class="form-control" id="custom-repo-path" placeholder="Enter custom repository path" style="display: none; margin-top: 0.5rem;">
+                    <div class="alert alert-success" style="margin-top: 0.5rem;">
+                        <strong>Current Repository:</strong> <span id="current-repo-display">rylie-seo-hub-v2</span>
+                    </div>
+                </div>
+
+                <div class="tab-nav">
+                    <button class="tab-btn active" onclick="showTab('pending')">Pending</button>
+                    <button class="tab-btn" onclick="showTab('active')">Active</button>
+                    <button class="tab-btn" onclick="showTab('completed')">Completed</button>
+                </div>
+
+                <div id="pending" class="tab-content active">
+                    <div class="ticket-list">
+                        <!-- Tickets will be loaded here -->
+                    </div>
+                </div>
+
+                <div id="active" class="tab-content">
+                    <div class="ticket-list">
+                        <!-- Active tickets -->
+                    </div>
+                </div>
+
+                <div id="completed" class="tab-content">
+                    <div class="ticket-list">
+                        <!-- Completed tickets -->
+                    </div>
+                </div>
+
+                <button class="btn" style="margin-top: 1rem;" onclick="loadTicketsFromFile()">
+                    Load Tickets from File
+                </button>
+            </section>
+
+            <!-- AI Workflow Section -->
+            <section id="ai-workflow" class="section">
+                <div class="section-header">
+                    <h2>AI Workflow</h2>
+                    <p>Configure and run AI-powered development workflows</p>
+                </div>
+
+                <div class="action-grid">
+                    <div class="action-card" onclick="runAIWorkflow('full')">
+                        <h3>🤖 Full AI Mode</h3>
+                        <p>AI agents handle everything autonomously</p>
+                    </div>
+                    <div class="action-card" onclick="runAIWorkflow('hybrid')">
+                        <h3>🎯 Hybrid Mode</h3>
+                        <p>AI assists human developers</p>
+                    </div>
+                    <div class="action-card" onclick="runAIWorkflow('manual')">
+                        <h3>👤 Manual Mode</h3>
+                        <p>Traditional multi-agent, no AI</p>
+                    </div>
+                </div>
+
+                <h3 style="margin: 2rem 0 1rem;">AI Configuration</h3>
+                <div class="form-group">
+                    <label>Primary Model</label>
+                    <select class="form-control" id="primary-model">
+                        <option value="openai/gpt-4.1">GPT-4.1</option>
+                        <option value="anthropic/claude-opus-4">Claude Opus 4</option>
+                        <option value="anthropic/claude-sonnet-4">Claude Sonnet 4</option>
+                        <option value="openai/o3-pro">O3 Pro</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Fast Model (for simple tasks)</label>
+                    <select class="form-control" id="fast-model">
+                        <option value="openai/gpt-4.1-mini">GPT-4.1 Mini</option>
+                        <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                        <option value="deepseek/deepseek-r1">DeepSeek R1</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-success" onclick="saveAIConfig()">Save Configuration</button>
+            </section>
+
+            <!-- Monitoring Section -->
+            <section id="monitoring" class="section">
+                <div class="section-header">
+                    <h2>System Monitoring</h2>
+                    <p>Track resource usage and system health</p>
+                </div>
+
+                <div class="status-grid">
+                    <div class="status-card">
+                        <h4>Tokens Used (Hour)</h4>
+                        <div class="value">45.2K</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 9%"></div>
+                        </div>
+                    </div>
+                    <div class="status-card">
+                        <h4>Cost Today</h4>
+                        <div class="value">$4.25</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 8.5%"></div>
+                        </div>
+                    </div>
+                    <div class="status-card">
+                        <h4>CPU Usage</h4>
+                        <div class="value">32%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 32%"></div>
+                        </div>
+                    </div>
+                    <div class="status-card">
+                        <h4>Memory</h4>
+                        <div class="value">1.2GB</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 30%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin: 2rem 0 1rem;">Reports</h3>
+                <div class="action-grid">
+                    <div class="action-card" onclick="generateReport('resource')">
+                        <h3>📊 Resource Report</h3>
+                        <p>Detailed usage breakdown</p>
+                    </div>
+                    <div class="action-card" onclick="generateReport('failure')">
+                        <h3>❌ Failure Report</h3>
+                        <p>View recent failures</p>
+                    </div>
+                    <div class="action-card" onclick="generateReport('oversight')">
+                        <h3>👁️ Oversight Report</h3>
+                        <p>Human review queue</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Terminal Section -->
+            <section id="terminal" class="section">
+                <div class="section-header">
+                    <h2>Terminal</h2>
+                    <p>Direct command execution</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Command</label>
+                    <input type="text" class="form-control" id="terminal-input" 
+                           placeholder="Enter command (e.g., node master-agent.js status)">
+                </div>
+                <button class="btn" onclick="executeCommand()">Execute</button>
+
+                <div class="terminal" id="terminal-output">
+                    <div class="terminal-line">$ Welcome to Multi-Agent Orchestrator</div>
+                    <div class="terminal-line">$ Type your commands above...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Modal Title</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection for real-time updates
+        let ws = null;
+        
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            ws = new WebSocket('ws://localhost:8080');
+            
+            ws.onopen = () => {
+                console.log('Connected to orchestrator');
+                updateStatus('connected');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateStatus('error');
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected from orchestrator');
+                updateStatus('disconnected');
+                // Attempt reconnection after 5 seconds
+                setTimeout(initWebSocket, 5000);
+            };
+        }
+        
+        // Handle incoming WebSocket messages
+        function handleWebSocketMessage(data) {
+            switch(data.type) {
+                case 'agent-update':
+                    updateAgentStatus(data.agent, data.status);
+                    break;
+                case 'ticket-update':
+                    updateTicketStatus(data.ticket, data.status);
+                    break;
+                case 'terminal-output':
+                    appendTerminalOutput(data.output);
+                    break;
+                case 'resource-update':
+                    updateResourceMetrics(data.metrics);
+                    break;
+            }
+        }
+        
+        // Send command to backend
+        function sendCommand(command, params = {}) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ command, params }));
+            } else {
+                // Fallback to HTTP request
+                fetch('/api/command', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command, params })
+                })
+                .then(response => response.json())
+                .then(data => handleCommandResponse(data))
+                .catch(error => console.error('Command error:', error));
+            }
+        }
+        
+        // Workflow Wizard Functions
+        let wizardState = {
+            currentStep: 1,
+            repository: null,
+            masterInitialized: false,
+            ticketsLoaded: false,
+            agentsAssigned: false
+        };
+        
+        function updateWizardUI() {
+            // Update step highlighting
+            document.querySelectorAll('.wizard-step').forEach((step, index) => {
+                step.classList.remove('active');
+                if (index + 1 === wizardState.currentStep) {
+                    step.classList.add('active');
+                }
+                if (index + 1 < wizardState.currentStep) {
+                    step.classList.add('completed');
+                }
+            });
+            
+            // Update progress bar
+            const progress = (wizardState.currentStep / 5) * 100;
+            document.getElementById('wizard-progress').style.width = progress + '%';
+            document.getElementById('current-step').textContent = wizardState.currentStep;
+        }
+        
+        function wizardRepoSelected() {
+            const repo = document.getElementById('wizard-repo').value;
+            const customInput = document.getElementById('wizard-custom-repo');
+            
+            if (!repo) return;
+            
+            if (repo === 'custom') {
+                // Show custom input
+                customInput.style.display = 'block';
+                customInput.focus();
+                return;
+            }
+            
+            // Hide custom input if visible
+            customInput.style.display = 'none';
+            
+            wizardState.repository = repo;
+            currentRepository = repo;
+            
+            // Update status
+            const repoStatus = document.getElementById('repo-status');
+            repoStatus.innerHTML = `✅ Selected: ${repo.split('/').pop()}`;
+            repoStatus.className = 'status-success';
+            
+            // Check if master is already initialized
+            sendCommand('check-master-status', { repository: repo });
+            
+            // Enable next step
+            document.getElementById('wizard-init-btn').disabled = false;
+            
+            // Move to step 2
+            wizardState.currentStep = 2;
+            updateWizardUI();
+        }
+        
+        function wizardCustomRepo() {
+            const customInput = document.getElementById('wizard-custom-repo');
+            const customPath = customInput.value.trim();
+            
+            if (customPath) {
+                wizardState.repository = customPath;
+                currentRepository = customPath;
+                
+                // Update status
+                const repoStatus = document.getElementById('repo-status');
+                repoStatus.innerHTML = `✅ Selected: ${customPath}`;
+                repoStatus.className = 'status-success';
+                
+                // Enable next step
+                document.getElementById('wizard-init-btn').disabled = false;
+                
+                // Move to step 2
+                wizardState.currentStep = 2;
+                updateWizardUI();
+            }
+        }
+        
+        function wizardInitMaster() {
+            const btn = document.getElementById('wizard-init-btn');
+            btn.disabled = true;
+            btn.innerHTML = 'Initializing...';
+            
+            const masterStatus = document.getElementById('master-status');
+            masterStatus.innerHTML = '🔄 Initializing Master Agent...';
+            masterStatus.className = 'status-warning';
+            
+            // Simulate master initialization
+            sendCommand('init-master', { repository: wizardState.repository });
+            
+            setTimeout(() => {
+                wizardState.masterInitialized = true;
+                masterStatus.innerHTML = '✅ Master Agent initialized';
+                masterStatus.className = 'status-success';
+                btn.innerHTML = '✅ Initialized';
+                
+                // Enable next step
+                document.getElementById('wizard-tickets-btn').disabled = false;
+                
+                // Move to step 3
+                wizardState.currentStep = 3;
+                updateWizardUI();
+            }, 2000);
+        }
+        
+        function wizardLoadTickets() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt,.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    // Preview tickets
+                    const ticketCount = (event.target.result.match(/TICKET-/g) || []).length;
+                    
+                    const ticketsStatus = document.getElementById('tickets-status');
+                    ticketsStatus.innerHTML = `🔄 Loading ${ticketCount} tickets...`;
+                    ticketsStatus.className = 'status-warning';
+                    
+                    // Send to backend
+                    sendCommand('load-tickets', { 
+                        content: event.target.result,
+                        repository: wizardState.repository
+                    });
+                    
+                    setTimeout(() => {
+                        wizardState.ticketsLoaded = true;
+                        ticketsStatus.innerHTML = `✅ ${ticketCount} tickets loaded`;
+                        ticketsStatus.className = 'status-success';
+                        document.getElementById('wizard-tickets-btn').innerHTML = '✅ Tickets Loaded';
+                        
+                        // Enable next step
+                        document.getElementById('wizard-mode').disabled = false;
+                        document.getElementById('wizard-assign-btn').disabled = false;
+                        
+                        // Move to step 4
+                        wizardState.currentStep = 4;
+                        updateWizardUI();
+                    }, 1500);
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        
+        function wizardAssignAgents() {
+            const mode = document.getElementById('wizard-mode').value;
+            const btn = document.getElementById('wizard-assign-btn');
+            btn.disabled = true;
+            btn.innerHTML = 'Assigning...';
+            
+            const assignStatus = document.getElementById('assign-status');
+            assignStatus.innerHTML = '🤖 Assigning tickets to AI agents...';
+            assignStatus.className = 'status-warning';
+            
+            // Run assignment
+            sendCommand('auto-assign-all', { 
+                mode: mode,
+                repository: wizardState.repository 
+            });
+            
+            setTimeout(() => {
+                wizardState.agentsAssigned = true;
+                assignStatus.innerHTML = '✅ All tickets assigned to agents';
+                assignStatus.className = 'status-success';
+                btn.innerHTML = '✅ Assigned';
+                
+                // Show active agents
+                assignStatus.innerHTML += '<br><small>Frontend: 3 tickets | Backend: 2 tickets | Database: 1 ticket</small>';
+                
+                // Enable final step
+                document.getElementById('wizard-integrate-btn').disabled = false;
+                
+                // Move to step 5
+                wizardState.currentStep = 5;
+                updateWizardUI();
+                
+                showAlert('info', 'AI Agents are now working on tickets. This may take a few minutes...');
+            }, 2000);
+        }
+        
+        function wizardRunIntegration() {
+            const btn = document.getElementById('wizard-integrate-btn');
+            btn.disabled = true;
+            btn.innerHTML = 'Integrating...';
+            
+            const integrationStatus = document.getElementById('integration-status');
+            integrationStatus.innerHTML = '🔄 Running Master Integration...';
+            integrationStatus.className = 'status-warning';
+            
+            // Start tracking workflow
+            workflowResults.startTime = new Date();
+            workflowResults.repository = wizardState.repository;
+            
+            sendCommand('master-integration', { repository: wizardState.repository });
+            
+            // Simulate integration process with detailed results
+            setTimeout(() => {
+                integrationStatus.innerHTML = '✅ Integration complete!';
+                integrationStatus.className = 'status-success';
+                btn.innerHTML = '✅ Complete!';
+                
+                // Simulate completion with sample results
+                workflowResults.endTime = new Date();
+                workflowResults.summary.total = 6;
+                workflowResults.summary.completed = 5;
+                workflowResults.summary.failed = 1;
+                workflowResults.summary.filesChanged = 12;
+                workflowResults.summary.linesAdded = 487;
+                workflowResults.summary.linesRemoved = 23;
+                
+                // Sample ticket results
+                workflowResults.tickets = {
+                    'TICKET-001': {
+                        id: 'TICKET-001',
+                        agent: 'backend',
+                        status: 'completed',
+                        startTime: new Date(Date.now() - 900000),
+                        endTime: new Date(Date.now() - 600000),
+                        files: [
+                            { path: 'src/server/packages/index.ts', action: 'added' },
+                            { path: 'src/server/packages/types.ts', action: 'added' },
+                            { path: 'src/app/api/packages/route.ts', action: 'modified' }
+                        ],
+                        errors: []
+                    },
+                    'TICKET-002': {
+                        id: 'TICKET-002',
+                        agent: 'database',
+                        status: 'completed',
+                        startTime: new Date(Date.now() - 850000),
+                        endTime: new Date(Date.now() - 550000),
+                        files: [
+                            { path: 'prisma/schema.prisma', action: 'modified' },
+                            { path: 'prisma/migrations/20250126_add_packages/migration.sql', action: 'added' }
+                        ],
+                        errors: []
+                    },
+                    'TICKET-003': {
+                        id: 'TICKET-003',
+                        agent: 'backend',
+                        status: 'failed',
+                        startTime: new Date(Date.now() - 800000),
+                        endTime: new Date(Date.now() - 500000),
+                        files: [],
+                        errors: ['Webhook endpoint not accessible', 'Missing environment variable: WEBHOOK_SECRET']
+                    },
+                    'TICKET-004': {
+                        id: 'TICKET-004',
+                        agent: 'frontend',
+                        status: 'completed',
+                        startTime: new Date(Date.now() - 750000),
+                        endTime: new Date(Date.now() - 450000),
+                        files: [
+                            { path: 'src/components/progress/ProgressBar.tsx', action: 'added' },
+                            { path: 'src/components/progress/StepIndicator.tsx', action: 'added' },
+                            { path: 'src/pages/dashboard.tsx', action: 'modified' }
+                        ],
+                        errors: []
+                    },
+                    'TICKET-005': {
+                        id: 'TICKET-005',
+                        agent: 'frontend',
+                        status: 'completed',
+                        startTime: new Date(Date.now() - 700000),
+                        endTime: new Date(Date.now() - 400000),
+                        files: [
+                            { path: 'src/components/chat/PromptSuggestions.tsx', action: 'added' },
+                            { path: 'src/components/chat/ChatInterface.tsx', action: 'modified' },
+                            { path: 'src/lib/prompts/seo-prompts.ts', action: 'added' }
+                        ],
+                        errors: []
+                    },
+                    'TICKET-006': {
+                        id: 'TICKET-006',
+                        agent: 'integration',
+                        status: 'completed',
+                        startTime: new Date(Date.now() - 650000),
+                        endTime: new Date(Date.now() - 350000),
+                        files: [
+                            { path: 'src/server/analytics/google.ts', action: 'added' },
+                            { path: 'src/lib/analytics/types.ts', action: 'added' }
+                        ],
+                        errors: []
+                    }
+                };
+                
+                // Show completion message with view results option
+                setTimeout(() => {
+                    integrationStatus.innerHTML += `
+                        <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.2); border-radius: 8px;">
+                            <h5>🎉 Workflow Complete!</h5>
+                            <p>${workflowResults.summary.completed} of ${workflowResults.summary.total} tickets successfully implemented.</p>
+                            <button class="btn" onclick="showWorkflowSummary()">View Detailed Results</button>
+                            <button class="btn" style="margin-left: 0.5rem;" onclick="resetWizard()">Start New Workflow</button>
+                        </div>
+                    `;
+                }, 1000);
+            }, 3000);
+        }
+        
+        function resetWizard() {
+            wizardState = {
+                currentStep: 1,
+                repository: null,
+                masterInitialized: false,
+                ticketsLoaded: false,
+                agentsAssigned: false
+            };
+            
+            // Reset UI
+            document.getElementById('wizard-repo').value = '';
+            document.getElementById('wizard-init-btn').disabled = true;
+            document.getElementById('wizard-init-btn').innerHTML = 'Initialize Master Agent';
+            document.getElementById('wizard-tickets-btn').disabled = true;
+            document.getElementById('wizard-tickets-btn').innerHTML = 'Load Tickets from File';
+            document.getElementById('wizard-mode').disabled = true;
+            document.getElementById('wizard-assign-btn').disabled = true;
+            document.getElementById('wizard-assign-btn').innerHTML = 'Auto-Assign All Tickets';
+            document.getElementById('wizard-integrate-btn').disabled = true;
+            document.getElementById('wizard-integrate-btn').innerHTML = 'Run Master Integration';
+            
+            // Clear status messages
+            ['repo-status', 'master-status', 'tickets-status', 'assign-status', 'integration-status'].forEach(id => {
+                document.getElementById(id).innerHTML = '';
+                document.getElementById(id).className = '';
+            });
+            
+            // Reset steps
+            document.querySelectorAll('.wizard-step').forEach(step => {
+                step.classList.remove('active', 'completed');
+            });
+            document.getElementById('step-1').classList.add('active');
+            
+            updateWizardUI();
+        }
+        
+        // Workflow tracking
+        let workflowResults = {
+            startTime: null,
+            endTime: null,
+            repository: '',
+            tickets: {},
+            summary: {
+                total: 0,
+                completed: 0,
+                failed: 0,
+                filesChanged: 0,
+                linesAdded: 0,
+                linesRemoved: 0
+            }
+        };
+        
+        // Track workflow results
+        function trackTicketStart(ticketId, agent) {
+            workflowResults.tickets[ticketId] = {
+                id: ticketId,
+                agent: agent,
+                status: 'in-progress',
+                startTime: new Date(),
+                endTime: null,
+                files: [],
+                errors: [],
+                output: []
+            };
+        }
+        
+        function trackTicketComplete(ticketId, success, details) {
+            if (workflowResults.tickets[ticketId]) {
+                workflowResults.tickets[ticketId].status = success ? 'completed' : 'failed';
+                workflowResults.tickets[ticketId].endTime = new Date();
+                if (details) {
+                    workflowResults.tickets[ticketId].files = details.files || [];
+                    workflowResults.tickets[ticketId].errors = details.errors || [];
+                }
+            }
+        }
+        
+        function showWorkflowSummary() {
+            // Hide wizard, show summary
+            document.getElementById('workflow-wizard').style.display = 'none';
+            document.getElementById('results-summary').style.display = 'block';
+            
+            // Calculate summary
+            const tickets = Object.values(workflowResults.tickets);
+            const completed = tickets.filter(t => t.status === 'completed').length;
+            const failed = tickets.filter(t => t.status === 'failed').length;
+            const filesChanged = tickets.reduce((sum, t) => sum + (t.files?.length || 0), 0);
+            
+            // Update summary cards
+            document.getElementById('completed-count').textContent = completed;
+            document.getElementById('completed-list').innerHTML = completed > 0 ? 
+                `<small>${completed} tickets successfully implemented</small>` : '';
+            
+            document.getElementById('issues-count').textContent = failed;
+            document.getElementById('issues-list').innerHTML = failed > 0 ? 
+                `<small>${failed} tickets encountered issues</small>` : '';
+            
+            document.getElementById('changes-count').textContent = filesChanged;
+            document.getElementById('changes-list').innerHTML = filesChanged > 0 ? 
+                `<small>${filesChanged} files created or modified</small>` : '';
+            
+            // Calculate duration
+            if (workflowResults.startTime && workflowResults.endTime) {
+                const duration = Math.round((workflowResults.endTime - workflowResults.startTime) / 1000 / 60);
+                document.getElementById('duration-time').textContent = `${duration}m`;
+                document.getElementById('timing-details').innerHTML = 
+                    `<small>${new Date(workflowResults.startTime).toLocaleTimeString()} - ${new Date(workflowResults.endTime).toLocaleTimeString()}</small>`;
+            }
+            
+            // Show detailed ticket results
+            const ticketResultsList = document.getElementById('ticket-results-list');
+            ticketResultsList.innerHTML = '';
+            
+            // Group tickets by agent
+            const ticketsByAgent = {};
+            tickets.forEach(ticket => {
+                if (!ticketsByAgent[ticket.agent]) {
+                    ticketsByAgent[ticket.agent] = [];
+                }
+                ticketsByAgent[ticket.agent].push(ticket);
+            });
+            
+            // Add agent summary section
+            const agentSummary = document.createElement('div');
+            agentSummary.innerHTML = `
+                <div style="margin-bottom: 2rem; padding: 1rem; background: var(--light); border-radius: 8px;">
+                    <h5 style="margin-bottom: 1rem;">🤖 Agent Performance Summary</h5>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        ${Object.entries(ticketsByAgent).map(([agent, agentTickets]) => {
+                            const completed = agentTickets.filter(t => t.status === 'completed').length;
+                            const total = agentTickets.length;
+                            return `
+                                <div style="text-align: center;">
+                                    <div style="font-weight: bold; text-transform: capitalize;">${agent} Agent</div>
+                                    <div style="font-size: 1.5rem; color: ${completed === total ? 'var(--success)' : 'var(--warning)'};">
+                                        ${completed}/${total}
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: #6b7280;">tasks completed</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+            ticketResultsList.appendChild(agentSummary);
+            
+            // Add individual ticket results
+            tickets.forEach(ticket => {
+                const resultItem = document.createElement('div');
+                resultItem.className = `ticket-result-item ${ticket.status === 'completed' ? 'success' : 'warning'}`;
+                
+                const duration = ticket.endTime ? 
+                    Math.round((ticket.endTime - ticket.startTime) / 1000 / 60) : 0;
+                
+                // Get ticket description (simulated)
+                const ticketDescriptions = {
+                    'TICKET-001': 'Implement Package Definition System',
+                    'TICKET-002': 'Enhance Order Model with Package Fields',
+                    'TICKET-003': 'Update Order Webhook with Package Details',
+                    'TICKET-004': 'Create Package Progress Components',
+                    'TICKET-005': 'Add Pre-filled SEO Prompts',
+                    'TICKET-006': 'Integrate Google Analytics'
+                };
+                
+                resultItem.innerHTML = `
+                    <h5>
+                        <span>${ticket.status === 'completed' ? '✅' : '⚠️'} ${ticket.id}: ${ticketDescriptions[ticket.id] || 'Task'}</span>
+                        <span class="status-badge ${ticket.status === 'completed' ? 'active' : 'idle'}">
+                            ${ticket.agent} agent - ${duration}m
+                        </span>
+                    </h5>
+                    <div class="ticket-result-details">
+                        ${ticket.files.length > 0 ? `
+                            <strong>📁 Files Changed (${ticket.files.length}):</strong>
+                            ${ticket.files.map(f => `
+                                <div class="file-change ${f.action || 'modified'}">
+                                    ${f.action === 'added' ? '➕' : f.action === 'deleted' ? '❌' : '📝'} ${f.path}
+                                </div>
+                            `).join('')}
+                        ` : ''}
+                        ${ticket.errors.length > 0 ? `
+                            <strong>❌ Issues Encountered:</strong>
+                            ${ticket.errors.map(e => `
+                                <div class="alert alert-danger" style="margin-top: 0.5rem;">
+                                    ${e}
+                                </div>
+                            `).join('')}
+                        ` : ''}
+                        ${ticket.status === 'completed' && ticket.files.length > 0 ? `
+                            <div style="margin-top: 0.5rem; padding: 0.5rem; background: #d1fae5; border-radius: 4px; font-size: 0.9rem;">
+                                ✨ Successfully implemented with ${ticket.files.filter(f => f.action === 'added').length} new files and ${ticket.files.filter(f => f.action === 'modified').length} modifications
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                ticketResultsList.appendChild(resultItem);
+            });
+            
+            // Add summary statistics at the bottom
+            const summaryStats = document.createElement('div');
+            summaryStats.innerHTML = `
+                <div style="margin-top: 2rem; padding: 1.5rem; background: var(--light); border-radius: 8px;">
+                    <h5 style="margin-bottom: 1rem;">📊 Workflow Statistics</h5>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; text-align: center;">
+                        <div>
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--primary);">${workflowResults.summary.linesAdded}</div>
+                            <div style="font-size: 0.9rem; color: #6b7280;">Lines Added</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--danger);">${workflowResults.summary.linesRemoved}</div>
+                            <div style="font-size: 0.9rem; color: #6b7280;">Lines Removed</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--success);">
+                                ${Math.round((completed / tickets.length) * 100)}%
+                            </div>
+                            <div style="font-size: 0.9rem; color: #6b7280;">Success Rate</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--warning);">
+                                ${tickets.reduce((sum, t) => sum + (t.endTime ? Math.round((t.endTime - t.startTime) / 1000 / 60) : 0), 0)}m
+                            </div>
+                            <div style="font-size: 0.9rem; color: #6b7280;">Total Agent Time</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            ticketResultsList.appendChild(summaryStats);
+            
+            // Scroll to top of results
+            document.getElementById('results-summary').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function downloadSummary() {
+            const summary = {
+                workflow: {
+                    repository: workflowResults.repository,
+                    startTime: workflowResults.startTime,
+                    endTime: workflowResults.endTime,
+                    duration: Math.round((workflowResults.endTime - workflowResults.startTime) / 1000 / 60) + ' minutes'
+                },
+                summary: workflowResults.summary,
+                tickets: workflowResults.tickets
+            };
+            
+            const blob = new Blob([JSON.stringify(summary, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `workflow-summary-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+        
+        function viewGitChanges() {
+            const command = `cd ${workflowResults.repository} && git status && git log --oneline -10`;
+            sendCommand('execute-terminal', { command });
+            showSection('terminal');
+        }
+        
+        // Repository management
+        let currentRepository = '/Users/copp1723/Desktop/rylie-seo-hub-v2';
+        
+        function updateSelectedRepo() {
+            const selector = document.getElementById('repo-selector');
+            const customInput = document.getElementById('custom-repo-path');
+            const display = document.getElementById('current-repo-display');
+            
+            if (selector.value === 'custom') {
+                customInput.style.display = 'block';
+                customInput.focus();
+                customInput.onblur = function() {
+                    if (customInput.value) {
+                        currentRepository = customInput.value;
+                        display.textContent = customInput.value;
+                        sendCommand('change-repository', { path: currentRepository });
+                        showAlert('success', `Repository changed to: ${customInput.value}`);
+                    }
+                };
+            } else {
+                customInput.style.display = 'none';
+                currentRepository = selector.value;
+                display.textContent = selector.value.split('/').pop();
+                sendCommand('change-repository', { path: currentRepository });
+                showAlert('success', `Repository changed to: ${selector.value.split('/').pop()}`);
+            }
+        }
+        
+        // Helper functions for agent details
+        function getAgentPaths(agent) {
+            const paths = {
+                frontend: {
+                    allowed: ['src/components/', 'src/pages/', 'src/styles/', 'src/app/'],
+                    excluded: ['src/server/', 'prisma/', 'src/lib/api/']
+                },
+                backend: {
+                    allowed: ['src/server/', 'src/lib/api/', 'src/app/api/'],
+                    excluded: ['src/components/', 'src/pages/', 'src/styles/']
+                },
+                database: {
+                    allowed: ['prisma/', 'src/lib/db/'],
+                    excluded: ['src/components/', 'src/pages/', 'src/server/api/']
+                },
+                integration: {
+                    allowed: ['src/lib/integrations/', 'src/server/webhooks/'],
+                    excluded: ['src/components/', 'prisma/migrations/']
+                },
+                testing: {
+                    allowed: ['src/__tests__/', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+                    excluded: []
+                },
+                master: {
+                    allowed: ['All directories - Supreme authority'],
+                    excluded: ['None - Can access everything']
+                }
+            };
+            return paths[agent] || { allowed: [], excluded: [] };
+        }
+        
+        function getAgentActivity(agent) {
+            if (agent === 'frontend') {
+                return `<div class="terminal-line">$ Working on TICKET-005: Add Pre-filled SEO Prompts</div>
+<div class="terminal-line">$ Branch: feature/frontend/ticket-005</div>
+<div class="terminal-line">$ Modified: src/components/chat/ChatInterface.tsx</div>
+<div class="terminal-line">$ Created: src/components/chat/PromptSuggestions.tsx</div>
+<div class="terminal-line">$ Running tests...</div>`;
+            }
+            return '<div class="terminal-line">$ No recent activity</div>';
+        }
+        
+        function assignAgentDirectly(agent) {
+            closeModal();
+            openModal('assign-agent');
+            // Pre-select the agent
+            setTimeout(() => {
+                document.getElementById('assign-agent').value = agent;
+            }, 100);
+        }
+        
+        function refreshAgentDetails(agent) {
+            // Simulate refresh
+            const modalBody = document.getElementById('modal-body');
+            const currentContent = modalBody.innerHTML;
+            modalBody.innerHTML = '<div style="text-align: center; padding: 2rem;">Refreshing...</div>';
+            
+            setTimeout(() => {
+                modalBody.innerHTML = currentContent;
+                showAlert('success', 'Agent details refreshed');
+            }, 1000);
+        }
+        
+        function stopAgent(agent) {
+            if (confirm(`Stop ${agent} agent? This will halt current work.`)) {
+                sendCommand('stop-agent', { agent });
+                closeModal();
+                showAlert('warning', `${agent} agent stopped`);
+            }
+        }
+        
+        // Navigation functions
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active class to clicked nav link
+            event.target.classList.add('active');
+        }
+        
+        function showTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabId).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+        
+        // Modal functions
+        function openModal(action) {
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            
+            switch(action) {
+                case 'create-ticket':
+                    modalTitle.textContent = 'Create New Ticket';
+                    modalBody.innerHTML = `
+                        <div class="alert alert-info" style="margin-bottom: 1rem;">
+                            <strong>Repository:</strong> ${currentRepository.split('/').pop()}
+                        </div>
+                        <div class="form-group">
+                            <label>Ticket ID</label>
+                            <input type="text" class="form-control" id="ticket-id" placeholder="TICKET-XXX">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea class="form-control" id="ticket-description" placeholder="Describe the task..." rows="4"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Implementation Notes (optional)</label>
+                            <textarea class="form-control" id="ticket-notes" placeholder="- First detail\n- Second detail\n- Dependencies: None" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Agent Type</label>
+                            <select class="form-control" id="ticket-agent">
+                                <option value="">Auto-assign based on description</option>
+                                <option value="frontend">Frontend (UI, Components)</option>
+                                <option value="backend">Backend (API, Services)</option>
+                                <option value="database">Database (Schema, Migrations)</option>
+                                <option value="integration">Integration (Webhooks, External APIs)</option>
+                                <option value="testing">Testing (Unit, Integration tests)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Dependencies (comma-separated ticket IDs)</label>
+                            <input type="text" class="form-control" id="ticket-dependencies" placeholder="TICKET-001, TICKET-002">
+                        </div>
+                        <button class="btn" onclick="createTicket()">Create Ticket</button>
+                    `;
+                    break;
+                    
+                case 'assign-agent':
+                    modalTitle.textContent = 'Assign Agent to Ticket';
+                    modalBody.innerHTML = `
+                        <div class="form-group">
+                            <label>Select Ticket</label>
+                            <select class="form-control" id="assign-ticket">
+                                <option value="TICKET-001">TICKET-001: Package Definitions</option>
+                                <option value="TICKET-002">TICKET-002: Enhance Order Model</option>
+                                <option value="TICKET-003">TICKET-003: Update Webhook</option>
+                                <option value="TICKET-004">TICKET-004: Progress Components</option>
+                                <option value="TICKET-005">TICKET-005: SEO Prompts</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Select Agent</label>
+                            <select class="form-control" id="assign-agent">
+                                <option value="frontend">Frontend Agent</option>
+                                <option value="backend">Backend Agent</option>
+                                <option value="database">Database Agent</option>
+                                <option value="integration">Integration Agent</option>
+                                <option value="testing">Testing Agent</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>AI Mode</label>
+                            <select class="form-control" id="assign-ai-mode">
+                                <option value="full">Full AI (Autonomous)</option>
+                                <option value="hybrid">Hybrid (AI Assist)</option>
+                                <option value="manual">Manual (No AI)</option>
+                            </select>
+                        </div>
+                        <button class="btn" onclick="assignAgent()">Assign Agent</button>
+                    `;
+                    break;
+                    
+                case 'agent-details':
+                    const agent = action; // action is the agent type in this case
+                    modalTitle.textContent = `${agent.charAt(0).toUpperCase() + agent.slice(1)} Agent Details`;
+                    modalBody.innerHTML = `
+                        <div class="agent-details">
+                            <div class="status-grid" style="margin-bottom: 1.5rem;">
+                                <div class="status-card">
+                                    <h4>Status</h4>
+                                    <div class="value" style="font-size: 1.2rem;">
+                                        <span class="status-badge ${agent === 'frontend' ? 'active' : 'idle'}">
+                                            ${agent === 'frontend' ? 'Active' : 'Idle'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="status-card">
+                                    <h4>Current Task</h4>
+                                    <div class="value" style="font-size: 1rem;">
+                                        ${agent === 'frontend' ? 'TICKET-005' : 'None'}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h4 style="margin-bottom: 1rem;">Configuration</h4>
+                            <div class="form-group">
+                                <label>Branch Prefix</label>
+                                <input type="text" class="form-control" value="feature/${agent}" readonly>
+                            </div>
+                            
+                            <h4 style="margin-bottom: 1rem;">Allowed Paths</h4>
+                            <div class="alert alert-success">
+                                ${getAgentPaths(agent).allowed.map(p => `✓ ${p}`).join('<br>')}
+                            </div>
+                            
+                            <h4 style="margin-bottom: 1rem;">Excluded Paths</h4>
+                            <div class="alert alert-warning">
+                                ${getAgentPaths(agent).excluded.map(p => `✗ ${p}`).join('<br>')}
+                            </div>
+                            
+                            <h4 style="margin-bottom: 1rem;">Recent Activity</h4>
+                            <div class="terminal" style="height: 200px;">
+                                ${getAgentActivity(agent)}
+                            </div>
+                            
+                            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                                <button class="btn" onclick="assignAgentDirectly('${agent}')">Assign Task</button>
+                                <button class="btn btn-secondary" onclick="refreshAgentDetails('${agent}')">Refresh</button>
+                                ${agent === 'frontend' ? '<button class="btn btn-danger" onclick="stopAgent(\'frontend\')">Stop Agent</button>' : ''}
+                            </div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'view-status':
+                    modalTitle.textContent = 'System Status';
+                    sendCommand('get-status');
+                    modalBody.innerHTML = `
+                        <div class="alert alert-success">
+                            System is operational
+                        </div>
+                        <h4>Active Processes</h4>
+                        <div id="status-details">Loading...</div>
+                    `;
+                    break;
+            }
+            
+            modal.classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+        
+        // Command execution functions
+        function createTicket() {
+            const ticketData = {
+                id: document.getElementById('ticket-id').value,
+                description: document.getElementById('ticket-description').value,
+                notes: document.getElementById('ticket-notes').value.split('\n').filter(n => n.trim()),
+                agent: document.getElementById('ticket-agent').value,
+                dependencies: document.getElementById('ticket-dependencies').value.split(',').map(d => d.trim()).filter(d => d),
+                repository: currentRepository
+            };
+            
+            if (!ticketData.id || !ticketData.description) {
+                showAlert('danger', 'Ticket ID and Description are required');
+                return;
+            }
+            
+            sendCommand('create-ticket', ticketData);
+            closeModal();
+            showAlert('success', `Ticket ${ticketData.id} created successfully`);
+        }
+        
+        function assignAgent() {
+            const assignmentData = {
+                ticket: document.getElementById('assign-ticket').value,
+                agent: document.getElementById('assign-agent').value,
+                aiMode: document.getElementById('assign-ai-mode').value
+            };
+            
+            sendCommand('assign-agent', assignmentData);
+            closeModal();
+            showAlert('success', 'Agent assigned successfully');
+        }
+        
+        function runMasterIntegration() {
+            if (confirm('Run master integration? This will merge all agent work.')) {
+                sendCommand('master-integration');
+                showAlert('info', 'Master integration started...');
+            }
+        }
+        
+        function initializeMasterAgent() {
+            sendCommand('init-master');
+            showAlert('success', 'Master agent initialized');
+        }
+        
+        function runAgentTask() {
+            sendCommand('create-agent-task');
+        }
+        
+        function checkAgentStatus() {
+            sendCommand('check-agent-status');
+        }
+        
+        function loadTicketsFromFile() {
+            // First check if a repository is selected
+            if (!currentRepository) {
+                showAlert('warning', 'Please select a repository first');
+                return;
+            }
+            
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt,.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    // Show preview modal
+                    openModal('preview-tickets');
+                    const modalTitle = document.getElementById('modal-title');
+                    const modalBody = document.getElementById('modal-body');
+                    
+                    modalTitle.textContent = 'Preview Tickets to Import';
+                    modalBody.innerHTML = `
+                        <div class="alert alert-info">
+                            <strong>Repository:</strong> ${currentRepository.split('/').pop()}<br>
+                            <strong>File:</strong> ${file.name}
+                        </div>
+                        <div class="form-group">
+                            <label>Ticket Content Preview</label>
+                            <textarea class="form-control" id="ticket-preview" rows="10" readonly>${event.target.result}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Import Options</label>
+                            <div class="form-check">
+                                <input type="checkbox" id="auto-assign" checked>
+                                <label for="auto-assign">Auto-assign tickets to agents</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" id="validate-deps" checked>
+                                <label for="validate-deps">Validate dependencies</label>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="confirmTicketImport('${btoa(event.target.result)}')">Import Tickets</button>
+                        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    `;
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        
+        function confirmTicketImport(encodedContent) {
+            const content = atob(encodedContent);
+            const autoAssign = document.getElementById('auto-assign').checked;
+            const validateDeps = document.getElementById('validate-deps').checked;
+            
+            sendCommand('load-tickets', { 
+                content, 
+                repository: currentRepository,
+                options: {
+                    autoAssign,
+                    validateDeps
+                }
+            });
+            closeModal();
+            showAlert('success', 'Tickets imported successfully');
+        }
+        
+        function runAIWorkflow(mode) {
+            sendCommand('run-ai-workflow', { mode });
+            showAlert('info', `Starting ${mode} AI workflow...`);
+        }
+        
+        function saveAIConfig() {
+            const config = {
+                primaryModel: document.getElementById('primary-model').value,
+                fastModel: document.getElementById('fast-model').value
+            };
+            sendCommand('save-ai-config', config);
+            showAlert('success', 'AI configuration saved');
+        }
+        
+        function generateReport(type) {
+            sendCommand('generate-report', { type });
+            showAlert('info', `Generating ${type} report...`);
+        }
+        
+        function executeCommand() {
+            const command = document.getElementById('terminal-input').value;
+            if (command) {
+                appendTerminalOutput(`$ ${command}`);
+                sendCommand('execute-terminal', { command });
+                document.getElementById('terminal-input').value = '';
+            }
+        }
+        
+        function appendTerminalOutput(text) {
+            const terminal = document.getElementById('terminal-output');
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.textContent = text;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+        
+        function showAlert(type, message) {
+            // Create and show alert
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            // Add to page
+            document.querySelector('.main-content').insertBefore(alert, document.querySelector('.section.active'));
+            
+            // Remove after 3 seconds
+            setTimeout(() => alert.remove(), 3000);
+        }
+        
+        function updateStatus(status) {
+            const indicator = document.querySelector('.status-indicator');
+            switch(status) {
+                case 'connected':
+                    indicator.style.background = 'var(--success)';
+                    break;
+                case 'disconnected':
+                    indicator.style.background = 'var(--warning)';
+                    break;
+                case 'error':
+                    indicator.style.background = 'var(--danger)';
+                    break;
+            }
+        }
+        
+        function updateAgentStatus(agent, status) {
+            // Update agent display with new status
+            console.log(`Agent ${agent} is now ${status}`);
+        }
+        
+        function updateTicketStatus(ticket, status) {
+            // Update ticket display with new status
+            console.log(`Ticket ${ticket} is now ${status}`);
+        }
+        
+        function updateResourceMetrics(metrics) {
+            // Update resource displays
+            console.log('Resource update:', metrics);
+        }
+        
+        function viewAgentDetails(agentType) {
+            // Open modal with agent details
+            openModal('agent-details', agentType);
+        }
+        
+        function handleCommandResponse(data) {
+            console.log('Command response:', data);
+            if (data.type === 'terminal-output') {
+                appendTerminalOutput(data.output);
+            }
+        }
+        
+        // Handle Enter key in terminal
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('terminal-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    executeCommand();
+                }
+            });
+            
+            // Try to connect to WebSocket
+            // initWebSocket();
+        });
+        
+        // Handle clicks outside modal
+        window.onclick = (event) => {
+            const modal = document.getElementById('modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+    </script>
+</body>
+</html>

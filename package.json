@@ -1,0 +1,27 @@
+{
+  "name": "multi-agent-orchestrator",
+  "version": "1.0.0",
+  "description": "AI-powered multi-agent development orchestration system",
+  "main": "orchestrator.js",
+  "scripts": {
+    "start": "node orchestrator.js",
+    "master": "node master-agent.js",
+    "ai-agent": "node ai-agent.js",
+    "web": "cd web-interface && npm start",
+    "test-ai": "node test-openrouter.js",
+    "setup": "npm install && cd web-interface && npm install",
+    "init": "node master-agent.js init",
+    "status": "node orchestrator.js status",
+    "monitor": "node resource-monitor.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "readline": "^1.3.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "author": "Multi-Agent System",
+  "license": "MIT"
+}
