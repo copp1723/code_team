@@ -1,0 +1,73 @@
+{
+  "orchestration": {
+    "maxConcurrentAgents": 3,
+    "syncInterval": 30000,
+    "autoSync": true,
+    "timeout": 300000
+  },
+  "agents": {
+    "maxAgents": 10,
+    "heartbeatInterval": 30000,
+    "defaultCapabilities": ["general"],
+    "agentTypes": {
+      "frontend": {
+        "capabilities": ["frontend", "react", "javascript", "css", "html"],
+        "maxConcurrent": 2
+      },
+      "backend": {
+        "capabilities": ["backend", "nodejs", "api", "database", "server"],
+        "maxConcurrent": 2
+      },
+      "fullstack": {
+        "capabilities": ["frontend", "backend", "fullstack", "javascript"],
+        "maxConcurrent": 1
+      }
+    }
+  },
+  "api": {
+    "openrouter": {
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "timeout": 30000,
+      "retries": 3
+    },
+    "supermemory": {
+      "baseUrl": "https://api.supermemory.ai",
+      "timeout": 30000,
+      "enabled": false
+    }
+  },
+  "project": {
+    "masterBranch": "main",
+    "branchPrefix": "agent",
+    "autoMerge": false
+  },
+  "models": {
+    "frontend": "anthropic/claude-3-sonnet-20240229",
+    "backend": "openai/gpt-4-turbo-preview",
+    "database": "anthropic/claude-3-opus-20240229",
+    "general": "anthropic/claude-3-sonnet-20240229"
+  },
+  "limits": {
+    "maxTokensPerHour": 100000,
+    "maxCostPerDay": 50.00,
+    "maxConcurrentTasks": 5
+  },
+  "web": {
+    "port": 8080,
+    "host": "localhost",
+    "enableWebSocket": true,
+    "staticPath": "./web-interface"
+  },
+  "logging": {
+    "level": "info",
+    "toFile": true,
+    "directory": "./logs",
+    "maxFileSize": "10MB",
+    "maxFiles": 7
+  },
+  "security": {
+    "corsOrigins": ["http://localhost:3000", "http://localhost:8080"],
+    "rateLimitWindow": 900000,
+    "rateLimitMax": 100
+  }
+}

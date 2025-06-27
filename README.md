@@ -1,236 +1,210 @@
-# Multi-Agent Orchestrator System
+# 🤖 Multi-Agent Orchestrator
 
-This directory contains the complete Multi-Agent Orchestrator system, consolidated from the rylie-seo-hub-v2 project.
+A sophisticated AI-powered development system that uses multiple specialized agents to handle different aspects of software development, all coordinated by a master agent with final authority.
 
-## Directory Structure
+## 🌟 Features
 
-```
-multi-agent-orchestrator/
-├── web-interface/          # Web dashboard and UI
-│   ├── index.html         # Enhanced dashboard with results summary
-│   ├── server.js          # Mock server for testing
-│   └── server-real.js     # Real WebSocket server
-├── core/                  # Core orchestration files
-│   ├── orchestrator.js    # Main orchestrator
-│   ├── master-agent.js    # Master agent with supreme authority
-│   ├── ai-agent.js        # AI-powered autonomous agents
-│   └── agent-task.js      # Task execution system
-├── ai-system/            # AI integration
-│   ├── ai-agent-engine.js # AI engine for code generation
-│   ├── ai-workflow.js     # AI workflow automation
-│   └── ai-validation-layer.js # AI validation system
-├── support/              # Support systems
-│   ├── failure-recovery.js # Failure detection and recovery
-│   ├── human-oversight.js  # Human review system
-│   └── resource-monitor.js # Resource usage monitoring
-├── config/               # Configuration files
-│   ├── agent-orchestrator.config.json
-│   ├── master-agent-config.json
-│   └── sprint-dependencies.json
-├── docs/                 # Documentation
-│   ├── MULTI_AGENT_GUIDE.md
-│   ├── AGENT_IMPROVEMENTS.md
-│   └── HANDOFF_MULTI_AGENT_AI_SYSTEM.md
-└── scripts/              # Utility scripts
-    ├── setup-agents.sh
-    ├── start-ai.sh
-    └── test-ai-setup.sh
-```
+- **Multiple Specialized Agents**: Frontend, Backend, Database, Integration, and Testing agents
+- **AI-Powered Development**: Integrated with OpenRouter for access to GPT-4, Claude, and 300+ AI models  
+- **Master Agent Authority**: Central coordinator that reviews and integrates all agent work
+- **Web Dashboard**: Real-time monitoring and control interface
+- **Intelligent Task Distribution**: Automatic assignment based on expertise
+- **Conflict Resolution**: Smart handling of overlapping changes
+- **Human Oversight**: Built-in approval workflows
+- **Resource Monitoring**: Track API usage and costs
 
-## Quick Start
+## 🚀 Quick Start
 
-### 1. Launch the Web Interface
 ```bash
-cd web-interface
-npm install
-npm start
-```
-Then open http://localhost:8080
+# 1. Clone and setup
+git clone <repository-url>
+cd multi-agent-orchestrator
 
-### 2. Run AI Workflow (Interactive)
-```bash
-./start-ai.sh
-```
+# 2. Run automated setup
+node quick-setup.js
 
-### 3. Manual Orchestration
-```bash
-node orchestrator.js
-```
+# 3. Configure your API key
+# Edit .env and add your OpenRouter API key
+# Get one from: https://openrouter.ai/keys
 
-### 4. Initialize Master Agent
-```bash
+# 4. Initialize master agent
 node master-agent.js init
+
+# 5. Start web interface
+npm run web
+
+# 6. Visit dashboard
+# Open http://localhost:8080
 ```
 
-## Key Components
+## 📋 Prerequisites
 
-### Master Agent
-- **File**: `master-agent.js`
-- **Authority**: Supreme - can override any agent
-- **Commands**:
-  - `init` - Initialize master branch
-  - `review` - Review pending work
-  - `integrate` - Integrate approved changes
-  - `override` - Enter override mode
+- Node.js 14+ 
+- Git
+- OpenRouter API key ([Get one here](https://openrouter.ai/keys))
 
-### AI Agents
-- **File**: `ai-agent.js`
-- **Purpose**: Autonomous code generation
-- **Usage**: `node ai-agent.js <ticket-id> <agent-type>`
-- **Models**: Configurable via `ai-agent-engine.js`
+## 🏗️ Architecture
 
-### Orchestrator
-- **File**: `orchestrator.js`
-- **Purpose**: Coordinate multiple agents
-- **Features**:
-  - Agent assignment
-  - Branch management
-  - Conflict resolution
-  - Status tracking
-
-### Web Interface
-- **Enhanced Dashboard** with workflow wizard
-- **Results Summary** showing:
-  - Completed tickets
-  - Files changed
-  - Agent performance
-  - Execution timeline
-- **Real-time Updates** via WebSocket
-
-## Configuration
-
-### Agent Configuration (`agent-orchestrator.config.json`)
-- Define agent types and boundaries
-- Set working paths and exclusions
-- Configure conflict resolution
-
-### Master Configuration (`master-agent-config.json`)
-- Review standards
-- Integration rules
-- Automation settings
-
-### Dependencies (`sprint-dependencies.json`)
-- Ticket dependencies
-- Parallel tracks
-- Sprint scheduling
-
-## Workflows
-
-### 1. Full AI Mode
-```bash
-node ai-workflow.js
-# Select option 1 for full AI automation
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Web Interface │────▶│  Master Agent   │────▶│  Target Project │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+         │                       │                         ▲
+         │                       ▼                         │
+         │              ┌─────────────────┐               │
+         └─────────────▶│   AI Agents     │───────────────┘
+                        │ - Frontend      │
+                        │ - Backend       │
+                        │ - Database      │
+                        └─────────────────┘
+                                 │
+                                 ▼
+                        ┌─────────────────┐
+                        │  OpenRouter AI  │
+                        │ GPT-4, Claude   │
+                        └─────────────────┘
 ```
 
-### 2. Hybrid Mode
+## 🎯 Usage Examples
+
+### Create and Assign a Ticket with AI
+
 ```bash
-node ai-workflow.js
-# Select option 2 for AI-assisted development
+# Interactive mode
+node ai-agent.js interactive
+
+# Direct assignment
+node ai-agent.js TICKET-001 frontend
+
+# From ticket file
+node ai-agent.js from-file tickets.txt
 ```
 
-### 3. Manual Mode
+### Master Agent Commands
+
 ```bash
-node orchestrator.js
-# Traditional multi-agent without AI
-```
+# Review all pending work
+node master-agent.js review
 
-## Testing
+# Integrate approved changes
+node master-agent.js integrate
 
-### Test AI Models
-```bash
-node test-models.js
-```
+# Monitor system continuously  
+node master-agent.js monitor
 
-### Test Direct API
-```bash
-node test-direct.js
-```
-
-### Test OpenRouter
-```bash
-node test-openrouter.js
-```
-
-## Environment Variables
-
-Required for AI features:
-```bash
-export OPENROUTER_API_KEY="your-api-key"
-```
-
-## State Files
-
-The system maintains several state files:
-- `.agent-status.json` - Current agent status
-- `.agent-locks.json` - File locking
-- `.master-agent.json` - Master configuration
-- `.pending-reviews.json` - Pending code reviews
-
-## Monitoring
-
-### Resource Monitor
-```bash
-node resource-monitor.js report
-```
-
-### Failure Recovery
-```bash
-node failure-recovery.js report
-```
-
-### Human Oversight
-```bash
-node human-oversight.js report
-```
-
-## Advanced Features
-
-### Master Override
-For emergency fixes across any codebase:
-```bash
+# Emergency override mode
 node master-agent.js override
 ```
 
-### Batch Integration
-Process multiple agent branches:
+### Orchestrator Commands
+
 ```bash
-node master-workflow.js batchIntegration
+# Check agent status
+node orchestrator.js status
+
+# Create agent branch
+node orchestrator.js create frontend TICKET-001
+
+# Sync agent with base
+node orchestrator.js sync frontend
+
+# Merge agent work
+node orchestrator.js merge frontend "Implemented user auth"
 ```
 
-### Continuous Monitoring
-```bash
-node master-agent.js monitor
+## 🔧 Configuration
+
+### Agent Configuration (`agent-orchestrator.config.json`)
+
+```json
+{
+  "agents": {
+    "frontend": {
+      "workingPaths": ["src/components", "src/pages"],
+      "excludePaths": ["src/server", "prisma"]
+    }
+  }
+}
 ```
 
-## Troubleshooting
+### AI Models (`ai-agent-engine.js`)
 
-### Agent Conflicts
+The system uses intelligent model selection based on task complexity:
+- **Simple tasks**: GPT-4.1 Mini, Gemini 2.5 Flash
+- **Complex tasks**: GPT-4.1, Claude Opus 4
+- **Code review**: Claude Sonnet 4
+- **Algorithms**: DeepSeek R1
+
+## 📊 Web Dashboard Features
+
+- **Real-time Status**: Monitor all agents and their current tasks
+- **Ticket Management**: Create, assign, and track tickets
+- **AI Integration**: Choose between full AI, hybrid, or manual modes
+- **Resource Monitoring**: Track API usage and costs
+- **Terminal Access**: Execute commands directly from the UI
+- **Report Generation**: Generate various system reports
+
+## 🛠️ Development Workflow
+
+1. **Create Ticket**: Define the task in tickets.txt or via web UI
+2. **AI Analysis**: System analyzes complexity and requirements
+3. **Agent Assignment**: Automatically assign to appropriate agent
+4. **AI Development**: Agent generates code, tests, and documentation
+5. **Validation**: AI validation layer checks code quality
+6. **Master Review**: Master agent reviews all changes
+7. **Integration**: Approved changes are merged to main
+
+## 📝 Available NPM Scripts
+
 ```bash
-node analyze-conflicts.js
+npm start          # Start orchestrator
+npm run master     # Run master agent
+npm run ai-agent   # Run AI agent
+npm run web        # Start web interface  
+npm run test-ai    # Test OpenRouter connection
+npm run setup      # Install all dependencies
+npm run monitor    # Start resource monitoring
 ```
 
-### Reset Agent State
-```bash
-rm .agent-*.json
-node orchestrator.js init
-```
+## 🔍 Troubleshooting
 
-### View Logs
-```bash
-tail -f .master-agent.log
-```
+### "OPENROUTER_API_KEY not set"
+Edit `.env` file and add your API key
 
-## Future Enhancements
+### "Git command failed"
+Ensure you're in a git repository: `git init`
 
-See `AGENT_IMPROVEMENTS.md` for planned features including:
-- Distributed orchestration
-- Advanced AI integration
-- Performance optimizations
-- Enhanced monitoring
+### "Cannot find module"
+Run `npm install` in both root and web-interface directories
 
-## Support
+### "Project path not found"
+Update `localPath` in `agent-orchestrator.config.json`
 
-For detailed documentation, see:
-- `MULTI_AGENT_GUIDE.md` - Complete system guide
-- `HANDOFF_MULTI_AGENT_AI_SYSTEM.md` - AI system details
-- Web interface at http://localhost:8080
+## 📚 Documentation
+
+- [Setup Guide](docs/SETUP_GUIDE.md)
+- [Multi-Agent Guide](MULTI_AGENT_GUIDE.md) 
+- [Agent Improvements](AGENT_IMPROVEMENTS.md)
+- [API Documentation](docs/API.md)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## 📄 License
+
+MIT License - see LICENSE file for details
+
+## 🙏 Acknowledgments
+
+- OpenRouter for AI model access
+- Next.js team for the framework
+- All contributors to this project
+
+---
+
+**Note**: Remember to keep your API keys secure and never commit them to version control!

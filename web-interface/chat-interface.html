@@ -1,0 +1,677 @@
+<!-- Agent Chat Interface -->
+<div id="agent-chat-container" style="display: none;">
+    <style>
+        .chat-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+            max-height: 80vh;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-header h3 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .model-selector {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .model-selector select {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        .model-selector select option {
+            background: #333;
+            color: white;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: #f9fafb;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .message {
+            display: flex;
+            gap: 1rem;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        
+        .message.user .message-avatar {
+            background: #e0e7ff;
+        }
+        
+        .message.agent .message-avatar {
+            background: #d1fae5;
+        }
+        
+        .message.master .message-avatar {
+            background: #fef3c7;
+        }
+        
+        .message-content {
+            flex: 1;
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .message-author {
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .message-time {
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+        
+        .message-text {
+            color: #4b5563;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        
+        .message-text code {
+            background: #f3f4f6;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .message-text pre {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+        
+        .chat-input-container {
+            padding: 1.5rem;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            border-radius: 0 0 12px 12px;
+        }
+        
+        .chat-input-wrapper {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        
+        .chat-textarea {
+            flex: 1;
+            min-height: 50px;
+            max-height: 150px;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        
+        .chat-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .chat-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .chat-send-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .chat-send-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+        
+        .chat-send-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            gap: 0.3rem;
+            padding: 1rem;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #9ca3af;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.7;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+        
+        .agent-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .agent-chip {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            background: #e5e7eb;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .agent-chip:hover {
+            background: #d1d5db;
+        }
+        
+        .agent-chip.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .chat-suggestions {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .suggestion-chip {
+            padding: 0.4rem 0.8rem;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .suggestion-chip:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+    </style>
+    
+    <div class="chat-container">
+        <div class="chat-header">
+            <h3>
+                <span id="chat-agent-icon">👑</span>
+                <span id="chat-agent-name">Master Agent</span>
+            </h3>
+            <div class="model-selector">
+                <label style="font-size: 0.9rem; opacity: 0.9;">Model:</label>
+                <select id="chat-model-selector" onchange="updateChatModel()">
+                    <option value="gpt-4.1">GPT 4.1</option>
+                    <option value="claude-4-sonnet" selected>Claude 4 Sonnet</option>
+                    <option value="claude-4-opus">Claude 4 Opus</option>
+                    <option value="openai-o3-pro">OpenAI o3 Pro</option>
+                    <option value="qwen2.5-coder">Qwen2.5 Coder</option>
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                    <option value="deepseek-r1">DeepSeek R1</option>
+                    <option value="minimax-m1-extended">MiniMax M1 Extended</option>
+                    <option value="deepseek-v3">DeepSeek V3</option>
+                    <option value="openai-codex-mini">OpenAI Codex Mini</option>
+                    <option value="qwen3-30b">Qwen3 30B A3B</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="agent-selector">
+            <div class="agent-chip active" onclick="switchChatAgent('master')">
+                👑 Master Agent
+            </div>
+            <div class="agent-chip" onclick="switchChatAgent('frontend')">
+                🎨 Frontend Agent
+            </div>
+            <div class="agent-chip" onclick="switchChatAgent('backend')">
+                ⚙️ Backend Agent
+            </div>
+            <div class="agent-chip" onclick="switchChatAgent('database')">
+                🗄️ Database Agent
+            </div>
+            <div class="agent-chip" onclick="switchChatAgent('integration')">
+                🔌 Integration Agent
+            </div>
+            <div class="agent-chip" onclick="switchChatAgent('testing')">
+                🧪 Testing Agent
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chat-messages">
+            <div class="message agent">
+                <div class="message-avatar">👑</div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-author">Master Agent</span>
+                        <span class="message-time">${new Date().toLocaleTimeString()}</span>
+                    </div>
+                    <div class="message-text">Hello! I'm the Master Agent, overseeing all development operations. I can help you with:
+
+• Creating and managing tickets
+• Coordinating agent assignments
+• Reviewing and integrating code
+• Answering questions about the system
+• Providing development guidance
+
+What would you like to work on today?</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <div class="chat-suggestions" id="chat-suggestions">
+                <div class="suggestion-chip" onclick="sendSuggestion('Show me the current status of all agents')">
+                    📊 Agent Status
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('What tickets are currently being worked on?')">
+                    🎫 Active Tickets
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Review the latest completed work')">
+                    🔍 Review Work
+                </div>
+                <div class="suggestion-chip" onclick="sendSuggestion('Help me create a new ticket')">
+                    ➕ Create Ticket
+                </div>
+            </div>
+            <div class="chat-input-wrapper">
+                <textarea 
+                    id="chat-input" 
+                    class="chat-textarea" 
+                    placeholder="Type your message here... (Shift+Enter for new line)"
+                    onkeydown="handleChatKeydown(event)"
+                ></textarea>
+                <div class="chat-controls">
+                    <button class="chat-send-btn" onclick="sendChatMessage()" id="chat-send-btn">
+                        <span>Send</span>
+                        <span>↵</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Chat functionality
+let currentChatAgent = 'master';
+let currentChatModel = 'claude-4-sonnet';
+let chatHistory = [];
+let isAgentTyping = false;
+
+// Agent icons and names
+const agentInfo = {
+    master: { icon: '👑', name: 'Master Agent' },
+    frontend: { icon: '🎨', name: 'Frontend Agent' },
+    backend: { icon: '⚙️', name: 'Backend Agent' },
+    database: { icon: '🗄️', name: 'Database Agent' },
+    integration: { icon: '🔌', name: 'Integration Agent' },
+    testing: { icon: '🧪', name: 'Testing Agent' }
+};
+
+// Model mapping to OpenRouter format
+const modelMapping = {
+    'gpt-4.1': 'openai/gpt-4-1106-preview',
+    'claude-4-sonnet': 'anthropic/claude-3-sonnet-20240229',
+    'claude-4-opus': 'anthropic/claude-3-opus-20240229',
+    'openai-o3-pro': 'openai/o3-pro',
+    'qwen2.5-coder': 'qwen/qwen-2.5-coder-32b',
+    'gemini-2.0-flash': 'google/gemini-2.0-flash',
+    'deepseek-r1': 'deepseek/deepseek-r1',
+    'minimax-m1-extended': 'minimax/minimax-m1-extended',
+    'deepseek-v3': 'deepseek/deepseek-v3',
+    'openai-codex-mini': 'openai/codex-mini',
+    'qwen3-30b': 'qwen/qwen3-30b-a3b'
+};
+
+function switchChatAgent(agent) {
+    currentChatAgent = agent;
+    
+    // Update UI
+    document.querySelectorAll('.agent-chip').forEach(chip => {
+        chip.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Update header
+    document.getElementById('chat-agent-icon').textContent = agentInfo[agent].icon;
+    document.getElementById('chat-agent-name').textContent = agentInfo[agent].name;
+    
+    // Add system message
+    addChatMessage('system', `Switched to ${agentInfo[agent].name}. This agent specializes in ${getAgentSpecialty(agent)}.`);
+    
+    // Update suggestions based on agent
+    updateChatSuggestions(agent);
+}
+
+function getAgentSpecialty(agent) {
+    const specialties = {
+        master: 'overseeing all operations, code review, and integration',
+        frontend: 'React, UI/UX, performance optimization, and accessibility',
+        backend: 'APIs, microservices, security, and scalability',
+        database: 'schema design, query optimization, and data migrations',
+        integration: 'external APIs, webhooks, and third-party services',
+        testing: 'unit tests, integration tests, and test automation'
+    };
+    return specialties[agent] || 'general development tasks';
+}
+
+function updateChatSuggestions(agent) {
+    const suggestions = {
+        master: [
+            { text: 'Agent Status', query: 'Show me the current status of all agents' },
+            { text: 'Active Tickets', query: 'What tickets are currently being worked on?' },
+            { text: 'Review Work', query: 'Review the latest completed work' },
+            { text: 'Create Ticket', query: 'Help me create a new ticket' }
+        ],
+        frontend: [
+            { text: 'Component Help', query: 'Help me create a new React component' },
+            { text: 'Performance', query: 'How can I optimize this component for performance?' },
+            { text: 'Accessibility', query: 'Review my component for accessibility issues' },
+            { text: 'Best Practices', query: 'What are the best practices for React development?' }
+        ],
+        backend: [
+            { text: 'API Design', query: 'Help me design a RESTful API endpoint' },
+            { text: 'Security', query: 'Review my code for security vulnerabilities' },
+            { text: 'Architecture', query: 'Suggest a microservices architecture' },
+            { text: 'Performance', query: 'How can I optimize this API for performance?' }
+        ],
+        database: [
+            { text: 'Schema Design', query: 'Help me design a database schema' },
+            { text: 'Query Optimization', query: 'Optimize this SQL query' },
+            { text: 'Migration', query: 'Create a database migration script' },
+            { text: 'Indexing', query: 'What indexes should I add for better performance?' }
+        ],
+        integration: [
+            { text: 'Webhook Setup', query: 'Help me set up a webhook endpoint' },
+            { text: 'API Integration', query: 'How do I integrate with this external API?' },
+            { text: 'Authentication', query: 'Implement OAuth2 authentication' },
+            { text: 'Rate Limiting', query: 'Add rate limiting to my API' }
+        ],
+        testing: [
+            { text: 'Unit Tests', query: 'Write unit tests for this function' },
+            { text: 'Integration Tests', query: 'Create integration tests for my API' },
+            { text: 'Test Coverage', query: 'How can I improve my test coverage?' },
+            { text: 'E2E Tests', query: 'Set up end-to-end testing' }
+        ]
+    };
+    
+    const suggestionsHtml = (suggestions[agent] || suggestions.master).map(s => 
+        `<div class="suggestion-chip" onclick="sendSuggestion('${s.query}')">
+            ${s.text}
+        </div>`
+    ).join('');
+    
+    document.getElementById('chat-suggestions').innerHTML = suggestionsHtml;
+}
+
+function updateChatModel() {
+    currentChatModel = document.getElementById('chat-model-selector').value;
+    addChatMessage('system', `Switched to ${currentChatModel} model.`);
+}
+
+function handleChatKeydown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendChatMessage();
+    }
+}
+
+function sendSuggestion(text) {
+    document.getElementById('chat-input').value = text;
+    sendChatMessage();
+}
+
+async function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    
+    if (!message || isAgentTyping) return;
+    
+    // Add user message
+    addChatMessage('user', message);
+    
+    // Clear input
+    input.value = '';
+    input.style.height = 'auto';
+    
+    // Show typing indicator
+    showTypingIndicator();
+    
+    // Disable send button
+    const sendBtn = document.getElementById('chat-send-btn');
+    sendBtn.disabled = true;
+    isAgentTyping = true;
+    
+    try {
+        // Send to backend with current agent and model
+        const response = await sendCommand('agent-chat', {
+            agent: currentChatAgent,
+            model: modelMapping[currentChatModel],
+            message: message,
+            history: chatHistory.slice(-10) // Send last 10 messages for context
+        });
+        
+        // Remove typing indicator
+        hideTypingIndicator();
+        
+        // Add agent response
+        if (response && response.reply) {
+            addChatMessage(currentChatAgent, response.reply);
+        } else {
+            // Fallback response if backend not connected
+            const fallbackResponse = generateFallbackResponse(message);
+            addChatMessage(currentChatAgent, fallbackResponse);
+        }
+    } catch (error) {
+        hideTypingIndicator();
+        addChatMessage('system', 'Failed to connect to agent. Please check your connection and try again.');
+    } finally {
+        sendBtn.disabled = false;
+        isAgentTyping = false;
+    }
+}
+
+function generateFallbackResponse(message) {
+    // Simple fallback responses when backend is not connected
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('status')) {
+        return 'System Status:\n\n• Master Agent: Active ✅\n• Frontend Agent: Idle\n• Backend Agent: Idle\n• Database Agent: Idle\n• Active Tickets: 0\n• Pending Tickets: 0';
+    } else if (lowerMessage.includes('ticket')) {
+        return 'To create a ticket:\n\n1. Click "Create Ticket" in the dashboard\n2. Enter ticket ID (e.g., TICKET-001)\n3. Add description and requirements\n4. Select the appropriate agent type\n5. Click "Create Ticket"\n\nWould you like me to guide you through creating a specific ticket?';
+    } else if (lowerMessage.includes('help')) {
+        return 'I can help you with:\n\n• Creating and managing tickets\n• Assigning work to specialized agents\n• Reviewing code and integrations\n• Monitoring system performance\n• Answering technical questions\n\nWhat specific help do you need?';
+    } else {
+        return `I understand you're asking about "${message}". As the ${agentInfo[currentChatAgent].name}, I'm here to help with ${getAgentSpecialty(currentChatAgent)}.\n\nTo get started, you can:\n1. Create a ticket for this task\n2. Ask me for specific guidance\n3. Request code examples\n\nHow would you like to proceed?`;
+    }
+}
+
+function addChatMessage(author, text) {
+    const messagesContainer = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${author}`;
+    
+    const avatarContent = author === 'user' ? '👤' : 
+                         author === 'system' ? '⚙️' : 
+                         agentInfo[author]?.icon || '🤖';
+    
+    const authorName = author === 'user' ? 'You' : 
+                      author === 'system' ? 'System' : 
+                      agentInfo[author]?.name || 'Agent';
+    
+    messageDiv.innerHTML = `
+        <div class="message-avatar">${avatarContent}</div>
+        <div class="message-content">
+            <div class="message-header">
+                <span class="message-author">${authorName}</span>
+                <span class="message-time">${new Date().toLocaleTimeString()}</span>
+            </div>
+            <div class="message-text">${formatMessageText(text)}</div>
+        </div>
+    `;
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    // Add to history
+    chatHistory.push({ author, text, timestamp: new Date() });
+}
+
+function formatMessageText(text) {
+    // Convert code blocks
+    text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+        return `<pre><code class="language-${lang || 'plaintext'}">${escapeHtml(code.trim())}</code></pre>`;
+    });
+    
+    // Convert inline code
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    
+    // Convert line breaks
+    text = text.replace(/\n/g, '<br>');
+    
+    return text;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showTypingIndicator() {
+    const messagesContainer = document.getElementById('chat-messages');
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message agent';
+    typingDiv.id = 'typing-indicator';
+    typingDiv.innerHTML = `
+        <div class="message-avatar">${agentInfo[currentChatAgent].icon}</div>
+        <div class="message-content">
+            <div class="typing-indicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+    `;
+    messagesContainer.appendChild(typingDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function hideTypingIndicator() {
+    const indicator = document.getElementById('typing-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+}
+
+// Auto-resize textarea
+document.addEventListener('DOMContentLoaded', () => {
+    const textarea = document.getElementById('chat-input');
+    if (textarea) {
+        textarea.addEventListener('input', () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+        });
+    }
+});
+</script>

@@ -1,0 +1,65 @@
+/* Emergency CSS fixes for chat readability */
+
+/* Force light backgrounds and dark text everywhere in chat */
+#chat,
+#chat *:not(.btn-primary) {
+    background-color: transparent !important;
+    color: #1f2937 !important;
+}
+
+#chat {
+    background-color: #f3f4f6 !important;
+}
+
+/* Message containers */
+.message,
+.message-content,
+.chat-message {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+/* Agent messages - light grey background */
+.message.agent,
+.agent .message-content,
+[class*="agent"] .message-content {
+    background-color: #f9fafb !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+/* User messages - light blue background */
+.message.user,
+.user .message-content,
+[class*="user"] .message-content {
+    background-color: #eff6ff !important;
+    color: #1e3a8a !important;
+    border: 1px solid #bfdbfe !important;
+}
+
+/* Fix any dark backgrounds that might be inherited */
+.chat-container,
+.chat-messages,
+.chat-welcome,
+.chat-input-container {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+}
+
+.chat-messages {
+    background-color: #f9fafb !important;
+}
+
+/* Ensure all text is readable */
+p, span, div, li, h1, h2, h3, h4, h5, h6 {
+    color: inherit !important;
+}
+
+/* Fix the specific dark background issue in messages */
+.message-content pre,
+.message-content code {
+    background-color: #f3f4f6 !important;
+    color: #1f2937 !important;
+    border: 1px solid #e5e7eb !important;
+}

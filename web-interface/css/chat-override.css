@@ -1,0 +1,135 @@
+/* Chat Interface Override Styles - Ensures proper colors */
+
+/* Main chat section */
+#chat {
+    background-color: #f3f4f6 !important;
+    color: #1f2937 !important;
+}
+
+/* Chat container and all children */
+#chat .chat-container,
+#chat .chat-container * {
+    color: #1f2937 !important;
+}
+
+/* Welcome section */
+#chat .chat-welcome {
+    background-color: #ffffff !important;
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 1rem;
+}
+
+#chat .chat-welcome h3 {
+    color: #111827 !important;
+    font-weight: 600;
+}
+
+#chat .chat-welcome p,
+#chat .chat-welcome li {
+    color: #374151 !important;
+}
+
+/* Suggested prompts */
+#chat .prompt-suggestion {
+    background-color: #e5e7eb !important;
+    color: #1f2937 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+#chat .prompt-suggestion:hover {
+    background-color: #d1d5db !important;
+    border-color: #9ca3af !important;
+}
+
+/* Chat messages */
+#chat .chat-messages {
+    background-color: #f9fafb !important;
+}
+
+/* Message bubbles */
+#chat .message {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+#chat .message.user {
+    background-color: #dbeafe !important;
+    color: #1e40af !important;
+    border-color: #93c5fd !important;
+}
+
+#chat .message.agent {
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
+    border-color: #d1d5db !important;
+}
+
+#chat .message-header {
+    color: #374151 !important;
+    font-weight: 600 !important;
+}
+
+#chat .message-content {
+    color: #1f2937 !important;
+    line-height: 1.6 !important;
+}
+
+/* Input area */
+#chat .chat-input-container {
+    background-color: #ffffff !important;
+    border-top: 1px solid #e5e7eb !important;
+}
+
+#chat .chat-input {
+    background-color: #f9fafb !important;
+    color: #1f2937 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+#chat .chat-input:focus {
+    border-color: #2563eb !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Model selector */
+#chat .model-selector select {
+    background-color: #ffffff !important;
+    color: #1f2937 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+/* Buttons */
+#chat .btn-secondary {
+    background-color: #e5e7eb !important;
+    color: #374151 !important;
+    border: 1px solid #d1d5db !important;
+}
+
+#chat .btn-secondary:hover {
+    background-color: #d1d5db !important;
+}
+
+#chat .btn-primary {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+#chat .btn-primary:hover {
+    background-color: #1d4ed8 !important;
+}
+
+/* Section header */
+#chat .section-header {
+    background-color: transparent !important;
+}
+
+#chat .section-header h2 {
+    color: #111827 !important;
+}
+
+#chat .section-header p {
+    color: #6b7280 !important;
+}

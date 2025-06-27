@@ -1,0 +1,1210 @@
+            word-wrap: break-word;
+        }
+        
+        .chat-input-container {
+            border-top: 1px solid var(--gray-200);
+            padding-top: 1rem;
+        }
+        
+        .chat-input-wrapper {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+        
+        .chat-input-wrapper textarea {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+            min-height: 40px;
+            max-height: 120px;
+        }
+        
+        .chat-input-wrapper textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .send-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 40px;
+        }
+        
+        .send-button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .send-button:disabled {
+            background: var(--gray-300);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .send-icon {
+            font-size: 1rem;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            color: var(--gray-600);
+            font-size: 0.8rem;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .typing-dot {
+            width: 4px;
+            height: 4px;
+            background: var(--gray-400);
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        
+        /* Logs Section */
+        .logs {
+            grid-area: logs;
+        }
+        
+        .log-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 0.8rem;
+        }
+        
+        .log-entry.error {
+            background: #fef2f2;
+            color: var(--danger);
+        }
+        
+        .log-entry.warning {
+            background: #fffbeb;
+            color: var(--warning);
+        }
+        
+        .log-entry.success {
+            background: #f0fdf4;
+            color: var(--success);
+        }
+        
+        .log-timestamp {
+            color: var(--gray-600);
+            margin-right: 0.5rem;
+        }
+        
+        /* Buttons */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.8rem;
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        .btn-ghost {
+            background: transparent;
+            color: var(--gray-600);
+            border: 1px solid var(--gray-300);
+        }
+        
+        .btn-ghost:hover {
+            background: var(--gray-100);
+            color: var(--dark);
+        }
+        
+        /* Quick Actions */
+        .quick-actions {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1000;
+        }
+        
+        .action-button {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.2s ease;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .action-button:hover {
+            transform: scale(1.1);
+            background: var(--primary-dark);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .dashboard {
+                grid-template-areas: 
+                    "overview overview"
+                    "agents workflow"
+                    "tickets monitoring"
+                    "chat logs";
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-areas: 
+                    "overview"
+                    "agents"
+                    "workflow"
+                    "tickets"
+                    "monitoring"
+                    "chat"
+                    "logs";
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .header-stats {
+                display: none;
+            }
+        }
+        
+        /* Animation Classes */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Health Indicators */
+        .health-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        .health-indicator.healthy {
+            background: var(--success);
+        }
+        
+        .health-indicator.warning {
+            background: var(--warning);
+        }
+        
+        .health-indicator.critical {
+            background: var(--danger);
+        }
+        
+        /* Toggle Switches */
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--gray-300);
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        
+        .toggle input:checked + .toggle-slider {
+            background: var(--primary);
+        }
+        
+        .toggle input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1>
+                <span class="status-indicator" id="main-status"></span>
+                🤖 Master Dashboard
+            </h1>
+            <div class="header-stats">
+                <div class="header-stat">
+                    <div class="header-stat-value" id="active-agents">3</div>
+                    <div class="header-stat-label">Active Agents</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value" id="running-tasks">7</div>
+                    <div class="header-stat-label">Running Tasks</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value" id="success-rate">94%</div>
+                    <div class="header-stat-label">Success Rate</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value" id="cost-today">$4.25</div>
+                    <div class="header-stat-label">Cost Today</div>
+                </div>
+            </div>
+            <div class="system-status">
+                <button class="btn btn-sm" onclick="refreshDashboard()">🔄 Refresh</button>
+                <button class="btn btn-sm btn-ghost" onclick="openTerminal()">💻 Terminal</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <main class="dashboard">
+        <!-- System Overview -->
+        <section class="card overview">
+            <div class="card-header">
+                <h2 class="card-title">📊 System Overview</h2>
+                <div class="card-actions">
+                    <label class="toggle">
+                        <input type="checkbox" id="auto-refresh" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span style="font-size: 0.9rem; margin-left: 0.5rem;">Auto-refresh</span>
+                </div>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card success">
+                    <div class="metric-value" id="completed-tickets">12</div>
+                    <div class="metric-label">Completed Today</div>
+                    <div class="metric-change">+3 from yesterday</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="pending-tickets">8</div>
+                    <div class="metric-label">Pending Tickets</div>
+                    <div class="metric-change">-2 from yesterday</div>
+                </div>
+                <div class="metric-card warning">
+                    <div class="metric-value" id="failed-tasks">2</div>
+                    <div class="metric-label">Failed Tasks</div>
+                    <div class="metric-change">+1 from yesterday</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="api-calls">1.2K</div>
+                    <div class="metric-label">API Calls (Hour)</div>
+                    <div class="metric-change">Normal usage</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Agent Status -->
+        <section class="card agents">
+            <div class="card-header">
+                <h2 class="card-title">🤖 Agent Status</h2>
+                <div class="card-actions">
+                    <button class="btn btn-sm" onclick="initAllAgents()">⚡ Init All</button>
+                </div>
+            </div>
+            <div class="agent-list">
+                <div class="agent-item">
+                    <div class="agent-info">
+                        <div class="agent-name">
+                            <span class="health-indicator healthy"></span>
+                            Frontend Agent
+                        </div>
+                        <div class="agent-status">Node.js, React specialist</div>
+                        <div class="agent-task">Working on: TICKET-005 (SEO Components)</div>
+                    </div>
+                    <div class="agent-controls">
+                        <span class="status-badge active">Active</span>
+                        <button class="btn btn-sm btn-ghost" onclick="viewAgent('frontend')">View</button>
+                    </div>
+                </div>
+                
+                <div class="agent-item">
+                    <div class="agent-info">
+                        <div class="agent-name">
+                            <span class="health-indicator healthy"></span>
+                            Backend Agent
+                        </div>
+                        <div class="agent-status">API, Database specialist</div>
+                        <div class="agent-task">Working on: TICKET-003 (Webhook System)</div>
+                    </div>
+                    <div class="agent-controls">
+                        <span class="status-badge working">Working</span>
+                        <button class="btn btn-sm btn-ghost" onclick="viewAgent('backend')">View</button>
+                    </div>
+                </div>
+                
+                <div class="agent-item">
+                    <div class="agent-info">
+                        <div class="agent-name">
+                            <span class="health-indicator warning"></span>
+                            Database Agent
+                        </div>
+                        <div class="agent-status">Schema, Migration specialist</div>
+                        <div class="agent-task">Issue: Connection timeout (retrying...)</div>
+                    </div>
+                    <div class="agent-controls">
+                        <span class="status-badge error">Error</span>
+                        <button class="btn btn-sm btn-warning" onclick="restartAgent('database')">Restart</button>
+                    </div>
+                </div>
+                
+                <div class="agent-item">
+                    <div class="agent-info">
+                        <div class="agent-name">
+                            <span class="health-indicator healthy"></span>
+                            Master Agent
+                        </div>
+                        <div class="agent-status">Orchestration, Integration</div>
+                        <div class="agent-task">Monitoring all agents, planning integration</div>
+                    </div>
+                    <div class="agent-controls">
+                        <span class="status-badge active">Active</span>
+                        <button class="btn btn-sm btn-ghost" onclick="viewAgent('master')">View</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Workflow Progress -->
+        <section class="card workflow">
+            <div class="card-header">
+                <h2 class="card-title">⚡ Current Workflow</h2>
+                <div class="card-actions">
+                    <button class="btn btn-sm btn-success" onclick="runIntegration()">🔄 Run Integration</button>
+                </div>
+            </div>
+            <div class="workflow-steps">
+                <div class="workflow-step completed">
+                    <div class="step-indicator">✓</div>
+                    <div class="step-content">
+                        <div class="step-title">Repository Setup</div>
+                        <div class="step-description">Initialized multi-agent orchestrator</div>
+                    </div>
+                </div>
+                
+                <div class="workflow-step completed">
+                    <div class="step-indicator">✓</div>
+                    <div class="step-content">
+                        <div class="step-title">Tickets Loaded</div>
+                        <div class="step-description">8 tickets imported and analyzed</div>
+                    </div>
+                </div>
+                
+                <div class="workflow-step active">
+                    <div class="step-indicator">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Agents Working</div>
+                        <div class="step-description">3 agents actively implementing features</div>
+                    </div>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-indicator">4</div>
+                    <div class="step-content">
+                        <div class="step-title">Quality Validation</div>
+                        <div class="step-description">Code review and testing pending</div>
+                    </div>
+                </div>
+                
+                <div class="workflow-step">
+                    <div class="step-indicator">5</div>
+                    <div class="step-content">
+                        <div class="step-title">Master Integration</div>
+                        <div class="step-description">Merge all completed work</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ticket Management -->
+        <section class="card tickets">
+            <div class="card-header">
+                <h2 class="card-title">📋 Tickets</h2>
+                <div class="card-actions">
+                    <button class="btn btn-sm" onclick="loadTickets()">📁 Load</button>
+                    <button class="btn btn-sm btn-ghost" onclick="createTicket()">➕ Create</button>
+                </div>
+            </div>
+            <div class="ticket-tabs">
+                <button class="tab-button active" onclick="showTickets('active')">Active (3)</button>
+                <button class="tab-button" onclick="showTickets('pending')">Pending (5)</button>
+                <button class="tab-button" onclick="showTickets('completed')">Done (12)</button>
+            </div>
+            <div class="ticket-list" id="ticket-list">
+                <div class="ticket-item active">
+                    <div class="ticket-id">TICKET-003</div>
+                    <div class="ticket-title">Update Order Webhook with Package Details</div>
+                    <div class="ticket-meta">
+                        <span>Backend Agent</span>
+                        <span>75% complete</span>
+                    </div>
+                </div>
+                
+                <div class="ticket-item active">
+                    <div class="ticket-id">TICKET-005</div>
+                    <div class="ticket-title">Add Pre-filled SEO Prompts</div>
+                    <div class="ticket-meta">
+                        <span>Frontend Agent</span>
+                        <span>60% complete</span>
+                    </div>
+                </div>
+                
+                <div class="ticket-item error">
+                    <div class="ticket-id">TICKET-002</div>
+                    <div class="ticket-title">Enhance Order Model with Package Fields</div>
+                    <div class="ticket-meta">
+                        <span>Database Agent</span>
+                        <span>Failed - Retry pending</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Resource Monitoring -->
+        <section class="card monitoring">
+            <div class="card-header">
+                <h2 class="card-title">📈 Resource Monitoring</h2>
+                <div class="card-actions">
+                    <button class="btn btn-sm btn-ghost" onclick="openMonitoring()">📊 Details</button>
+                </div>
+            </div>
+            <div class="monitoring-grid">
+                <div class="monitoring-metric">
+                    <div class="monitoring-value">32%</div>
+                    <div class="monitoring-label">CPU Usage</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 32%"></div>
+                    </div>
+                </div>
+                
+                <div class="monitoring-metric">
+                    <div class="monitoring-value">1.2GB</div>
+                    <div class="monitoring-label">Memory</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill warning" style="width: 60%"></div>
+                    </div>
+                </div>
+                
+                <div class="monitoring-metric">
+                    <div class="monitoring-value">45K</div>
+                    <div class="monitoring-label">Tokens/Hr</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 45%"></div>
+                    </div>
+                </div>
+                
+                <div class="monitoring-metric">
+                    <div class="monitoring-value">94%</div>
+                    <div class="monitoring-label">Success Rate</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill success" style="width: 94%"></div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 1rem;">
+                <div style="font-size: 0.9rem; color: var(--gray-600);">
+                    <strong>Health Status:</strong> All systems operational
+                </div>
+                <div style="font-size: 0.8rem; color: var(--gray-600); margin-top: 0.25rem;">
+                    Last check: <span id="last-health-check">Just now</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Master Agent Chat -->
+        <section class="card chat">
+            <div class="card-header">
+                <h2 class="card-title">🤖 Master Agent Chat</h2>
+                <div class="card-actions">
+                    <select class="model-selector" id="model-selector">
+                        <option value="openai/gpt-4">GPT-4</option>
+                        <option value="anthropic/claude-4-sonnet" selected>Claude 4 Sonnet</option>
+                        <option value="anthropic/claude-4-opus">Claude 4 Opus</option>
+                        <option value="openai/o3-pro">OpenAI o3 Pro</option>
+                        <option value="google/gemini-2.0-flash">Gemini 2.0 Flash</option>
+                        <option value="deepseek/deepseek-r1">DeepSeek R1</option>
+                        <option value="qwen/qwen-2.5-coder">Qwen 2.5 Coder</option>
+                        <option value="minimax/minimax-m1-extended">MiniMax M1 Extended</option>
+                        <option value="grok/grok-3">Grok 3</option>
+                        <option value="deepseek/deepseek-v3">DeepSeek V3</option>
+                    </select>
+                    <button class="btn btn-sm btn-ghost" onclick="clearChat()">🗑️ Clear</button>
+                    <button class="btn btn-sm btn-ghost" onclick="exportChat()">📤 Export</button>
+                </div>
+            </div>
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message agent-message">
+                        <div class="message-avatar">🤖</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-sender">Master Agent</span>
+                                <span class="message-time">10:47:27 AM</span>
+                            </div>
+                            <div class="message-text">
+                                Hello! I'm your Master Agent. I can help you coordinate the multi-agent system, analyze tickets, plan workflows, and provide insights about the current state of your projects. What would you like to know or do?
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <textarea 
+                            id="chat-input" 
+                            placeholder="Ask the Master Agent anything..."
+                            rows="1"
+                            onkeydown="handleChatKeydown(event)"
+                        ></textarea>
+                        <button class="send-button" onclick="sendMessage()" id="send-button">
+                            <span class="send-icon">📤</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- System Logs -->
+        <section class="card logs">
+            <div class="card-header">
+                <h2 class="card-title">📄 System Logs</h2>
+                <div class="card-actions">
+                    <button class="btn btn-sm btn-ghost" onclick="downloadLogs()">💾 Export</button>
+                </div>
+            </div>
+            <div class="log-list" id="log-list">
+                <div class="log-entry success">
+                    <span class="log-timestamp">14:23:45</span>
+                    Frontend Agent completed component creation for TICKET-005
+                </div>
+                <div class="log-entry">
+                    <span class="log-timestamp">14:22:18</span>
+                    Backend Agent: API endpoint /api/packages successfully created
+                </div>
+                <div class="log-entry error">
+                    <span class="log-timestamp">14:21:03</span>
+                    Database Agent: Connection timeout to primary database
+                </div>
+                <div class="log-entry warning">
+                    <span class="log-timestamp">14:20:45</span>
+                    Database Agent: Retrying connection attempt 2/3
+                </div>
+                <div class="log-entry">
+                    <span class="log-timestamp">14:19:30</span>
+                    Master Agent: Analyzing ticket dependencies
+                </div>
+                <div class="log-entry success">
+                    <span class="log-timestamp">14:18:12</span>
+                    System: All agents initialized successfully
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Quick Actions Floating Buttons -->
+    <div class="quick-actions">
+        <button class="action-button" onclick="emergencyStop()" title="Emergency Stop">
+            ⏹️
+        </button>
+        <button class="action-button" onclick="runMasterIntegration()" title="Run Integration">
+            🔄
+        </button>
+        <button class="action-button" onclick="openWizard()" title="Workflow Wizard">
+            🧙
+        </button>
+    </div>
+
+    <script>
+        // Dashboard State Management
+        let dashboardState = {
+            autoRefresh: true,
+            refreshInterval: 5000,
+            agents: {
+                frontend: { status: 'active', health: 'healthy', task: 'TICKET-005' },
+                backend: { status: 'working', health: 'healthy', task: 'TICKET-003' },
+                database: { status: 'error', health: 'warning', task: 'TICKET-002' },
+                master: { status: 'active', health: 'healthy', task: 'monitoring' }
+            },
+            tickets: {
+                active: [],
+                pending: [],
+                completed: []
+            },
+            metrics: {
+                completedTickets: 12,
+                pendingTickets: 8,
+                failedTasks: 2,
+                apiCalls: 1200,
+                activeAgents: 3,
+                runningTasks: 7,
+                successRate: 94,
+                costToday: 4.25
+            }
+        };
+
+        // Chat functionality
+        let chatHistory = [];
+        let isTyping = false;
+
+        function handleChatKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message || isTyping) return;
+            
+            // Add user message
+            addChatMessage('user', message);
+            input.value = '';
+            
+            // Auto-resize textarea
+            input.style.height = '40px';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            try {
+                // Get selected model
+                const model = document.getElementById('model-selector').value;
+                
+                // Send to Master Agent
+                const response = await sendToMasterAgent(message, model);
+                
+                // Hide typing indicator and show response
+                hideTypingIndicator();
+                addChatMessage('agent', response);
+                
+            } catch (error) {
+                hideTypingIndicator();
+                addChatMessage('agent', `I apologize, but I encountered an error: ${error.message}. Please try again or check the system status.`);
+            }
+        }
+
+        function addChatMessage(sender, text) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${sender}-message fade-in`;
+            
+            const currentTime = new Date().toLocaleTimeString();
+            const avatar = sender === 'user' ? '👤' : '🤖';
+            const senderName = sender === 'user' ? 'You' : 'Master Agent';
+            
+            messageElement.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-sender">${senderName}</span>
+                        <span class="message-time">${currentTime}</span>
+                    </div>
+                    <div class="message-text">${text}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Add to chat history
+            chatHistory.push({
+                sender: sender,
+                message: text,
+                timestamp: currentTime
+            });
+        }
+
+        function showTypingIndicator() {
+            isTyping = true;
+            const messagesContainer = document.getElementById('chat-messages');
+            const typingElement = document.createElement('div');
+            typingElement.className = 'message agent-message';
+            typingElement.id = 'typing-indicator';
+            
+            typingElement.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <span>Master Agent is thinking</span>
+                        <div class="typing-dots">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(typingElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            isTyping = false;
+            const typingElement = document.getElementById('typing-indicator');
+            if (typingElement) {
+                typingElement.remove();
+            }
+        }
+
+        async function sendToMasterAgent(message, model) {
+            try {
+                const response = await fetch('/api/master-chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        model: model,
+                        context: chatHistory.slice(-10) // Send last 10 messages for context
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to get response from Master Agent');
+                }
+
+                const data = await response.json();
+                
+                // If there's a fallback response due to API issues
+                if (data.fallback) {
+                    addLogEntry('warning', 'Using fallback chat response due to API issues');
+                }
+                
+                return data.response;
+
+            } catch (error) {
+                console.error('Master Agent chat error:', error);
+                throw new Error(`Communication error: ${error.message}`);
+            }
+        }
+
+        function clearChat() {
+            if (confirm('Clear all chat messages?')) {
+                document.getElementById('chat-messages').innerHTML = '';
+                chatHistory = [];
+                addLogEntry('info', 'Chat history cleared');
+                
+                // Add welcome message back
+                setTimeout(() => {
+                    addChatMessage('agent', "Hello! I'm your Master Agent. I can help you coordinate the multi-agent system, analyze tickets, plan workflows, and provide insights about the current state of your projects. What would you like to know or do?");
+                }, 500);
+            }
+        }
+
+        function exportChat() {
+            if (chatHistory.length === 0) {
+                alert('No chat history to export');
+                return;
+            }
+            
+            const chatText = chatHistory.map(entry => {
+                return `[${entry.timestamp}] ${entry.sender}: ${entry.message}`;
+            }).join('\n\n');
+            
+            const blob = new Blob([chatText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `master-agent-chat-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            
+            addLogEntry('info', 'Chat history exported');
+        }
+
+        // Auto-resize chat input
+        document.getElementById('chat-input').addEventListener('input', function() {
+            this.style.height = '40px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Auto-refresh functionality
+        let refreshTimer;
+
+        function startAutoRefresh() {
+            if (dashboardState.autoRefresh) {
+                refreshTimer = setInterval(() => {
+                    refreshDashboard();
+                }, dashboardState.refreshInterval);
+            }
+        }
+
+        function stopAutoRefresh() {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+            }
+        }
+
+        // Dashboard refresh function
+        async function refreshDashboard() {
+            console.log('Refreshing dashboard...');
+            
+            try {
+                // Simulate API calls to get real data
+                await updateSystemMetrics();
+                await updateAgentStatuses();
+                await updateWorkflowProgress();
+                await updateResourceMonitoring();
+                
+                // Update last refresh time
+                document.getElementById('last-health-check').textContent = new Date().toLocaleTimeString();
+                
+                // Add visual feedback
+                const statusIndicator = document.getElementById('main-status');
+                statusIndicator.style.animation = 'none';
+                setTimeout(() => {
+                    statusIndicator.style.animation = 'pulse 2s infinite';
+                }, 10);
+                
+            } catch (error) {
+                console.error('Dashboard refresh failed:', error);
+                addLogEntry('error', 'Dashboard refresh failed: ' + error.message);
+            }
+        }
+
+        // Update system metrics
+        async function updateSystemMetrics() {
+            // Simulate metric updates with realistic variations
+            const metrics = dashboardState.metrics;
+            
+            // Simulate real-time changes
+            metrics.apiCalls += Math.floor(Math.random() * 50) - 25;
+            metrics.costToday += (Math.random() * 0.2) - 0.1;
+            metrics.successRate = Math.max(85, Math.min(100, metrics.successRate + (Math.random() * 2) - 1));
+            
+            // Update DOM
+            document.getElementById('completed-tickets').textContent = metrics.completedTickets;
+            document.getElementById('pending-tickets').textContent = metrics.pendingTickets;
+            document.getElementById('failed-tasks').textContent = metrics.failedTasks;
+            document.getElementById('api-calls').textContent = (metrics.apiCalls / 1000).toFixed(1) + 'K';
+            
+            document.getElementById('active-agents').textContent = metrics.activeAgents;
+            document.getElementById('running-tasks').textContent = metrics.runningTasks;
+            document.getElementById('success-rate').textContent = Math.round(metrics.successRate) + '%';
+            document.getElementById('cost-today').textContent = '$' + metrics.costToday.toFixed(2);
+        }
+
+        // Update agent statuses
+        async function updateAgentStatuses() {
+            // This would typically make API calls to check actual agent status
+            console.log('Updating agent statuses...');
+            
+            // Simulate status changes
+            if (Math.random() < 0.1) { // 10% chance of status change
+                if (dashboardState.agents.database.status === 'error') {
+                    dashboardState.agents.database.status = 'idle';
+                    dashboardState.agents.database.health = 'healthy';
+                    addLogEntry('success', 'Database Agent: Connection restored');
+                }
+            }
+        }
+
+        // Update workflow progress
+        async function updateWorkflowProgress() {
+            // Update workflow step indicators based on agent progress
+            console.log('Updating workflow progress...');
+        }
+
+        // Update resource monitoring
+        async function updateResourceMonitoring() {
+            // Update CPU, memory, and other resource metrics
+            console.log('Updating resource monitoring...');
+        }
+
+        // Agent management functions
+        function viewAgent(agentType) {
+            console.log(`Viewing ${agentType} agent details`);
+            // Open agent details modal or navigate to agent page
+            alert(`Opening ${agentType} agent details...`);
+        }
+
+        function restartAgent(agentType) {
+            if (confirm(`Restart ${agentType} agent? This will stop current work.`)) {
+                console.log(`Restarting ${agentType} agent`);
+                addLogEntry('warning', `${agentType} agent restart initiated`);
+                
+                // Simulate restart process
+                setTimeout(() => {
+                    dashboardState.agents[agentType].status = 'active';
+                    dashboardState.agents[agentType].health = 'healthy';
+                    addLogEntry('success', `${agentType} agent restarted successfully`);
+                    refreshDashboard();
+                }, 2000);
+            }
+        }
+
+        function initAllAgents() {
+            console.log('Initializing all agents...');
+            addLogEntry('info', 'Initializing all agents...');
+            
+            // Simulate initialization process
+            Object.keys(dashboardState.agents).forEach((agent, index) => {
+                setTimeout(() => {
+                    dashboardState.agents[agent].status = 'active';
+                    dashboardState.agents[agent].health = 'healthy';
+                    addLogEntry('success', `${agent} agent initialized`);
+                }, index * 500);
+            });
+        }
+
+        // Workflow management
+        function runIntegration() {
+            if (confirm('Run master integration? This will merge all completed work.')) {
+                console.log('Running master integration...');
+                addLogEntry('info', 'Master integration started');
+                
+                // Simulate integration process
+                setTimeout(() => {
+                    addLogEntry('success', 'Master integration completed successfully');
+                    refreshDashboard();
+                }, 3000);
+            }
+        }
+
+        function runMasterIntegration() {
+            runIntegration();
+        }
+
+        function openWizard() {
+            console.log('Opening workflow wizard...');
+            alert('Opening workflow wizard...');
+        }
+
+        function emergencyStop() {
+            if (confirm('EMERGENCY STOP: This will halt all agents immediately. Continue?')) {
+                console.log('Emergency stop activated');
+                addLogEntry('error', 'EMERGENCY STOP activated - all agents halted');
+                
+                // Set all agents to idle
+                Object.keys(dashboardState.agents).forEach(agent => {
+                    dashboardState.agents[agent].status = 'idle';
+                });
+                
+                refreshDashboard();
+            }
+        }
+
+        // Ticket management
+        function showTickets(type) {
+            // Update tab active state
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Load and display tickets of specified type
+            console.log(`Showing ${type} tickets`);
+        }
+
+        function loadTickets() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt,.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                console.log('Loading tickets from:', file.name);
+                addLogEntry('info', `Loading tickets from ${file.name}`);
+            };
+            input.click();
+        }
+
+        function createTicket() {
+            console.log('Creating new ticket...');
+            alert('Opening ticket creation form...');
+        }
+
+        function openTerminal() {
+            console.log('Opening terminal interface...');
+            alert('Terminal interface would open here...');
+        }
+
+        // Logging functions
+        function addLogEntry(type, message) {
+            const logList = document.getElementById('log-list');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `
+                <span class="log-timestamp">${timestamp}</span>
+                ${message}
+            `;
+            
+            logList.insertBefore(entry, logList.firstChild);
+            
+            // Keep only last 50 entries
+            while (logList.children.length > 50) {
+                logList.removeChild(logList.lastChild);
+            }
+        }
+
+        function downloadLogs() {
+            console.log('Downloading system logs...');
+            // Collect all log entries
+            const logs = Array.from(document.querySelectorAll('.log-entry')).map(entry => {
+                return entry.textContent;
+            });
+            
+            const blob = new Blob([logs.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `system-logs-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+        }
+
+        // Monitoring functions
+        function openMonitoring() {
+            console.log('Opening detailed monitoring...');
+            alert('Opening detailed resource monitoring dashboard...');
+        }
+
+        // Auto-refresh toggle
+        document.getElementById('auto-refresh').addEventListener('change', function() {
+            dashboardState.autoRefresh = this.checked;
+            if (this.checked) {
+                startAutoRefresh();
+                addLogEntry('info', 'Auto-refresh enabled');
+            } else {
+                stopAutoRefresh();
+                addLogEntry('info', 'Auto-refresh disabled');
+            }
+        });
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing Master Dashboard...');
+            addLogEntry('success', 'Master Dashboard initialized');
+            
+            // Start auto-refresh
+            startAutoRefresh();
+            
+            // Initial data load
+            refreshDashboard();
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            stopAutoRefresh();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+{
+  "buttons": {
+    "initAll": {
+      "original": "⚡ Init All",
+      "friendly": "🚀 Start All Agents",
+      "tooltip": "Start all AI agents to begin processing tickets"
+    },
+    "runIntegration": {
+      "original": "🔄 Run Integration",
+      "friendly": "✨ Process & Merge Work",
+      "tooltip": "Combine all completed work from agents"
+    },
+    "loadTickets": {
+      "original": "📁 Load",
+      "friendly": "📥 Import Tickets",
+      "tooltip": "Import tickets from file or system"
+    },
+    "createTicket": {
+      "original": "➕ Create",
+      "friendly": "➕ New Task",
+      "tooltip": "Create a new task for agents to work on"
+    },
+    "restartAgent": {
+      "original": "Restart",
+      "friendly": "🔄 Fix Issue",
+      "tooltip": "Restart this agent to fix the connection issue"
+    },
+    "viewAgent": {
+      "original": "View",
+      "friendly": "👀 Details",
+      "tooltip": "See what this agent is working on"
+    }
+  },
+  "sections": {
+    "agentStatus": {
+      "original": "🤖 Agent Status",
+      "friendly": "👥 Your AI Team"
+    },
+    "currentWorkflow": {
+      "original": "⚡ Current Workflow",
+      "friendly": "📈 Progress Tracker"
+    },
+    "tickets": {
+      "original": "📋 Tickets",
+      "friendly": "📋 Tasks & Tickets"
+    },
+    "systemOverview": {
+      "original": "📊 System Overview",
+      "friendly": "📊 Dashboard"
+    },
+    "resourceMonitoring": {
+      "original": "📈 Resource Monitoring",
+      "friendly": "💻 System Health"
+    },
+    "masterAgentChat": {
+      "original": "🤖 Master Agent Chat",
+      "friendly": "💬 Chat with AI Team"
+    }
+  },
+  "workflowSteps": {
+    "repositorySetup": {
+      "original": "Repository Setup",
+      "friendly": "System Ready",
+      "description": "All systems are online and ready"
+    },
+    "ticketsLoaded": {
+      "original": "Tickets Loaded",
+      "friendly": "Tasks Imported",
+      "description": "Your tasks have been loaded successfully"
+    },
+    "agentsWorking": {
+      "original": "Agents Working",
+      "friendly": "AI Team Working",
+      "description": "Your AI agents are working on the tasks"
+    },
+    "qualityValidation": {
+      "original": "Quality Validation",
+      "friendly": "Checking Work",
+      "description": "Reviewing completed work for quality"
+    },
+    "masterIntegration": {
+      "original": "Master Integration",
+      "friendly": "Combining Results",
+      "description": "Merging all completed work together"
+    }
+  },
+  "agentDescriptions": {
+    "frontend": {
+      "role": "UI & User Experience Expert",
+      "tasks": "Creates interfaces, components, and user interactions"
+    },
+    "backend": {
+      "role": "Server & Logic Expert",
+      "tasks": "Handles data processing and business logic"
+    },
+    "database": {
+      "role": "Data Storage Expert",
+      "tasks": "Manages data organization and retrieval"
+    },
+    "master": {
+      "role": "Team Coordinator",
+      "tasks": "Oversees all agents and ensures quality"
+    }
+  },
+  "statusMessages": {
+    "error": {
+      "connectionTimeout": {
+        "original": "Connection timeout (retrying...)",
+        "friendly": "Having connection issues - fixing automatically..."
+      }
+    },
+    "success": {
+      "allSystemsOperational": {
+        "original": "All systems operational",
+        "friendly": "Everything is working perfectly! ✨"
+      }
+    }
+  },
+  "uploadArea": {
+    "title": "Drop your files here to create tasks",
+    "subtitle": "Or click to browse - supports PDF, Word, Text files",
+    "processingMessage": "Creating tasks from your file..."
+  }
+}

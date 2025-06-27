@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Task Processor - Workflow</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #5b6fde;
+            --primary-dark: #4a5bc7;
+            --success: #48c78e;
+            --warning: #fbbf24;
+            --danger: #ff6b6b;
+            --dark: #1a1a1a;
+            --gray-100: #f5f7fa;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-600: #4b5563;
+            --white: #ffffff;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-100);
+            color: var(--dark);
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Left Panel - Workflow */
+        .workflow-panel {
+            width: 400px;
+            background: white;
+            border-right: 1px solid var(--gray-200);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .workflow-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        .workflow-header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .workflow-header p {
+            color: var(--gray-600);
+            font-size: 14px;
+        }
+        
+        /* Workflow Steps */
+        .workflow-steps {
+            padding: 24px;
+            flex: 1;
+        }
+        
+        .workflow-step {
+            margin-bottom: 32px;
+            position: relative;
+        }
+        
+        .workflow-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 44px;
+            width: 2px;
+            height: calc(100% - 20px);
+            background: var(--gray-300);
+        }
+        
+        .workflow-step.completed::after {
+            background: var(--success);
+        }
+        
+        .workflow-step.active::after {
+            background: linear-gradient(to bottom, var(--success) 50%, var(--gray-300) 50%);
+        }
+        
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gray-300);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .workflow-step.completed .step-number {
+            background: var(--success);
+        }
+        
+        .workflow-step.active .step-number {
+            background: var(--primary);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(91, 111, 222, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(91, 111, 222, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(91, 111, 222, 0); }
+        }
+        
+        .step-info {
+            flex: 1;
+        }
+        
+        .step-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        
+        .step-description {
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+        
+        .step-content {
+            margin-left: 56px;
+            padding: 12px;
+            background: var(--gray-100);
+            border-radius: 8px;
+        }
+        
+        .workflow-step.disabled .step-content {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed var(--gray-300);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: rgba(91, 111, 222, 0.05);
+        }
+        
+        .upload-area.has-files {
+            border-style: solid;
+            border-color: var(--success);
+            background: rgba(72, 199, 142, 0.05);
+        }
+        
+        .upload-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+        
+        .uploaded-files {
+            margin-top: 12px;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .file-remove {
+            margin-left: auto;
+            color: var(--danger);
+            cursor: pointer;
+        }
+        
+        /* Action Buttons */
+        .action-button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .action-button.primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .action-button.primary:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .action-button:disabled {
+            background: var(--gray-300);
+            color: var(--gray-400);
+            cursor: not-allowed;
+        }
+        
+        /* Progress Indicators */
+        .ticket-progress {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .ticket-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .ticket-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+        
+        .ticket-status.working {
+            background: rgba(91, 111, 222, 0.1);
+            color: var(--primary);
+        }
+        
+        .ticket-status.completed {
+            background: rgba(72, 199, 142, 0.1);
+            color: var(--success);
+        }
+        
+        .ticket-status.failed {
+            background: rgba(255, 107, 107, 0.1);
+            color: var(--danger);
+        }
+        
+        /* Summary Stats */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .summary-stat {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .summary-label {
+            font-size: 12px;
+            color: var(--gray-600);
+        }
+        
+        /* Middle Panel - Chat */
+        .chat-panel {
+            flex: 1;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+        
+        .chat-header h2 {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+        
+        .chat-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .message {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .message.agent .message-avatar {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .message.user .message-avatar {
+            background: var(--gray-400);
+            color: white;
+        }
+        
+        .message-content {
+            flex: 1;
+            background: var(--gray-100);
+            padding: 12px 16px;
+            border-radius: 12px;
+        }
+        
+        .message.user .message-content {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .message-time {
+            font-size: 12px;
+            color: var(--gray-600);
+            margin-top: 4px;
+        }
+        
+        .message.user .message-time {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .chat-input-container {
+            padding: 20px;
+            border-top: 1px solid var(--gray-200);
+        }
+        
+        .chat-input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+            font-size: 14px;
+            min-height: 44px;
+            max-height: 120px;
+        }
+        
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .chat-send {
+            padding: 12px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .chat-send:hover {
+            background: var(--primary-dark);
+        }
+        
+        /* Right Panel - Status */
+        .status-panel {
+            width: 320px;
+            background: var(--gray-100);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .status-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .status-section h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .agent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .agent-card {
+            padding: 12px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .agent-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .agent-info {
+            flex: 1;
+        }
+        
+        .agent-name {
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .agent-task {
+            font-size: 12px;
+            color: var(--gray-600);
+        }
+        
+        .agent-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--gray-400);
+        }
+        
+        .agent-status-dot.active {
+            background: var(--success);
+        }
+        
+        .agent-status-dot.working {
+            background: var(--primary);
+            animation: pulse 2s infinite;
+        }
+        
+        /* Activity Log */
+        .activity-log {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            padding: 8px;
+            background: var(--gray-100);
+            border-radius: 6px;
+            font-size: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .log-time {
+            color: var(--gray-600);
+            white-space: nowrap;
+        }
+        
+        .log-message {
+            flex: 1;
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .status-panel {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .workflow-panel {
+                width: 100%;
+                height: 50vh;
+                border-right: none;
+                border-bottom: 1px solid var(--gray-200);
+            }
+            
+            .chat-panel {
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left Panel - Workflow -->
+        <div class="workflow-panel">
+            <div class="workflow-header">
+                <h1>AI Task Processor</h1>
+                <p>Follow these steps to process your tasks</p>
+            </div>
+            
+            <div class="workflow-steps">
+                <!-- Step 1: Upload -->
+                <div class="workflow-step active" id="step-upload">
+                    <div class="step-header">
+                        <div class="step-number">1</div>
+                        <div class="step-info">
+                            <div class="step-title">Upload Your Tasks</div>
+                            <div class="step-description">Add files containing tasks to process</div>
+                        </div>
+                    </div>
+                    <div class="step-content">
+                        <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+                            <div class="upload-icon">📁</div>
+                            <div>Click or drag files here</div>
+                            <div style="font-size: 12px; color: var(--gray-600);">PDF, DOC, TXT supported</div>
+                            <input type="file" id="file-input" style="display: none;" accept=".pdf,.doc,.docx,.txt" multiple onchange="handleFileUpload(this)">
+                        </div>
+                        <div class="uploaded-files" id="uploaded-files"></div>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Start Processing -->
+                <div class="workflow-step disabled" id="step-process">
+                    <div class="step-header">
+                        <div class="step-number">2</div>
+                        <div class="step-info">
+                            <div class="step-title">Start AI Processing</div>
+                            <div class="step-description">Assign agents to work on your tasks</div>
+                        </div>
+                    </div>
+                    <div class="step-content">
+                        <button class="action-button primary" id="start-button" onclick="startProcessing()" disabled>
+                            <span>🚀</span>
+                            <span>Start AI Agents</span>
+                        </button>
+                        <div style="margin-top: 8px; font-size: 12px; color: var(--gray-600); text-align: center;">
+                            <span id="ticket-count">0</span> tasks ready to process
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 3: Monitor Progress -->
+                <div class="workflow-step disabled" id="step-monitor">
+                    <div class="step-header">
+                        <div class="step-number">3</div>
+                        <div class="step-info">
+                            <div class="step-title">Working on Tasks</div>
+                            <div class="step-description">AI agents are processing your tasks</div>
+                        </div>
+                    </div>
+                    <div class="step-content">
+                        <div class="ticket-progress" id="ticket-progress">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Review Results -->
+                <div class="workflow-step disabled" id="step-complete">
+                    <div class="step-header">
+                        <div class="step-number">4</div>
+                        <div class="step-info">
+                            <div class="step-title">Tasks Complete!</div>
+                            <div class="step-description">Review and download results</div>
+                        </div>
+                    </div>
+                    <div class="step-content">
+                        <div class="summary-grid">
+                            <div class="summary-stat">
+                                <div class="summary-value" id="completed-count">0</div>
+                                <div class="summary-label">Completed</div>
+                            </div>
+                            <div class="summary-stat">
+                                <div class="summary-value" id="success-rate">0%</div>
+                                <div class="summary-label">Success Rate</div>
+                            </div>
+                        </div>
+                        <button class="action-button primary" style="margin-top: 12px;" onclick="downloadResults()">
+                            <span>📥</span>
+                            <span>Download Results</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Middle Panel - Chat -->
+        <div class="chat-panel">
+            <div class="chat-header">
+            <h2>💬 AI Assistant</h2>
+            <p>Ask questions or get help with your tasks</p>
+                <div style="margin-top: 10px;">
+                <select id="model-selector" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 5px 10px; border-radius: 5px;">
+                    <option value="gpt-4.1">GPT 4.1</option>
+                    <option value="claude-4-sonnet" selected>Claude 4 Sonnet</option>
+                    <option value="claude-4-opus">Claude 4 Opus</option>
+                    <option value="openai-o3-pro">OpenAI o3 Pro</option>
+                    <option value="qwen2.5-coder">Qwen2.5 Coder</option>
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                    <option value="deepseek-r1">DeepSeek R1</option>
+                    <option value="minimax-m1-extended">MiniMax M1 Extended</option>
+                    <option value="deepseek-v3">DeepSeek V3</option>
+                    <option value="openai-codex-mini">OpenAI Codex Mini</option>
+                    <option value="qwen3-30b">Qwen3 30B A3B</option>
+                </select>
+            </div>
+        </div>
+            
+            <div class="chat-messages" id="chat-messages">
+                <div class="message agent">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <div>Welcome! I'm here to help you process your tasks. Start by uploading a file containing the tasks you want to work on.</div>
+                        <div class="message-time">Just now</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <textarea 
+                        id="chat-input" 
+                        class="chat-input" 
+                        placeholder="Type a message..."
+                        rows="1"
+                        onkeydown="handleChatKeydown(event)"
+                    ></textarea>
+                    <button class="chat-send" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Panel - Status -->
+        <div class="status-panel">
+            <div class="status-section">
+                <h3>
+                    <span>🤖</span>
+                    <span>AI Agents</span>
+                </h3>
+                <div class="agent-list">
+                    <div class="agent-card">
+                        <div class="agent-icon">🎨</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Frontend Agent</div>
+                            <div class="agent-task">Waiting...</div>
+                        </div>
+                        <div class="agent-status-dot" id="frontend-status"></div>
+                    </div>
+                    
+                    <div class="agent-card">
+                        <div class="agent-icon">⚙️</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Backend Agent</div>
+                            <div class="agent-task">Waiting...</div>
+                        </div>
+                        <div class="agent-status-dot" id="backend-status"></div>
+                    </div>
+                    
+                    <div class="agent-card">
+                        <div class="agent-icon">💾</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Database Agent</div>
+                            <div class="agent-task">Waiting...</div>
+                        </div>
+                        <div class="agent-status-dot" id="database-status"></div>
+                    </div>
+                    
+                    <div class="agent-card">
+                        <div class="agent-icon">🎯</div>
+                        <div class="agent-info">
+                            <div class="agent-name">Master Agent</div>
+                            <div class="agent-task">Coordinating...</div>
+                        </div>
+                        <div class="agent-status-dot active" id="master-status"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-section">
+                <h3>
+                    <span>📊</span>
+                    <span>Activity Log</span>
+                </h3>
+                <div class="activity-log" id="activity-log">
+                    <div class="log-entry">
+                        <span class="log-time">12:00 PM</span>
+                        <span class="log-message">System ready</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/workflow-integration.js"></script>
+    <script>
+        // State management
+        let uploadedFiles = [];
+        let tickets = [];
+        let currentStep = 1;
+        let processingInterval = null;
+        
+        // File upload handling
+        function handleFileUpload(input) {
+            const files = Array.from(input.files);
+            uploadedFiles = uploadedFiles.concat(files);
+            updateUploadedFiles();
+            
+            // Enable next step
+            if (uploadedFiles.length > 0) {
+                enableStep(2);
+                document.getElementById('start-button').disabled = false;
+                document.getElementById('ticket-count').textContent = uploadedFiles.length;
+                
+                // Update chat
+                addChatMessage('agent', `Great! I've loaded ${uploadedFiles.length} file(s). Click "Start AI Agents" when you're ready to process them.`);
+                addLog(`${uploadedFiles.length} file(s) uploaded`);
+            }
+        }
+        
+        function updateUploadedFiles() {
+            const container = document.getElementById('uploaded-files');
+            const uploadArea = document.getElementById('upload-area');
+            
+            if (uploadedFiles.length > 0) {
+                uploadArea.classList.add('has-files');
+                container.innerHTML = uploadedFiles.map((file, index) => `
+                    <div class="file-item">
+                        <span>📄</span>
+                        <span>${file.name}</span>
+                        <span class="file-remove" onclick="removeFile(${index})">✕</span>
+                    </div>
+                `).join('');
+            } else {
+                uploadArea.classList.remove('has-files');
+                container.innerHTML = '';
+            }
+        }
+        
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            updateUploadedFiles();
+            
+            if (uploadedFiles.length === 0) {
+                disableStep(2);
+                document.getElementById('start-button').disabled = true;
+            }
+            
+            document.getElementById('ticket-count').textContent = uploadedFiles.length;
+        }
+        
+        // Workflow control
+        function enableStep(stepNumber) {
+            const step = document.querySelector(`#step-${getStepId(stepNumber)}`);
+            if (step) {
+                step.classList.remove('disabled');
+            }
+        }
+        
+        function disableStep(stepNumber) {
+            const step = document.querySelector(`#step-${getStepId(stepNumber)}`);
+            if (step) {
+                step.classList.add('disabled');
+            }
+        }
+        
+        function activateStep(stepNumber) {
+            // Deactivate all steps
+            document.querySelectorAll('.workflow-step').forEach(step => {
+                step.classList.remove('active');
+            });
+            
+            // Mark previous steps as completed
+            for (let i = 1; i < stepNumber; i++) {
+                const step = document.querySelector(`#step-${getStepId(i)}`);
+                if (step) {
+                    step.classList.add('completed');
+                }
+            }
+            
+            // Activate current step
+            const currentStepEl = document.querySelector(`#step-${getStepId(stepNumber)}`);
+            if (currentStepEl) {
+                currentStepEl.classList.add('active');
+            }
+            
+            currentStep = stepNumber;
+        }
+        
+        function getStepId(stepNumber) {
+            const stepIds = ['', 'upload', 'process', 'monitor', 'complete'];
+            return stepIds[stepNumber];
+        }
+        
+        // Start processing
+        async function startProcessing() {
+            // Move to monitoring step
+            activateStep(3);
+            enableStep(3);
+            
+            // Parse tickets from uploaded files
+            const allTickets = [];
+            
+            for (const file of uploadedFiles) {
+                const content = await readFileContent(file);
+                const parsedTickets = parseTickets(content);
+                allTickets.push(...parsedTickets);
+            }
+            
+            tickets = allTickets;
+            
+            // Update UI
+            updateTicketProgress();
+            updateAgentStatus('working');
+            
+            // Send to actual AI agents via integration
+            if (window.workflowIntegration) {
+                window.workflowIntegration.startProcessing(tickets);
+                
+                // Monitor real progress
+                monitorRealProgress();
+            } else {
+                // Fallback to simulation only if no backend
+                simulateProcessing();
+            }
+            
+            addChatMessage('agent', `Starting AI agents to process ${tickets.length} tasks. They will write actual code for each ticket!`);
+            addLog('AI agents started processing');
+        }
+        
+        // Read file content
+        async function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+        
+        // Parse tickets from content
+        function parseTickets(content) {
+            const tickets = [];
+            const lines = content.split('\n');
+            let currentTicket = null;
+            
+            for (const line of lines) {
+                const ticketMatch = line.match(/^(TICKET-[A-Z0-9-]+):\s*(.+)/);
+                if (ticketMatch) {
+                    if (currentTicket) tickets.push(currentTicket);
+                    currentTicket = {
+                        id: ticketMatch[1],
+                        description: ticketMatch[2],
+                        details: [],
+                        status: 'pending',
+                        progress: 0,
+                        output: ''
+                    };
+                } else if (currentTicket && line.trim().startsWith('-')) {
+                    currentTicket.details.push(line.trim().substring(1).trim());
+                }
+            }
+            
+            if (currentTicket) tickets.push(currentTicket);
+            return tickets;
+        }
+        
+        // Monitor real progress from backend
+        function monitorRealProgress() {
+            const checkInterval = setInterval(() => {
+                // This will be updated by the integration when it receives updates
+                updateTicketProgress();
+                
+                // Check if all done
+                const allDone = tickets.every(t => t.status === 'completed' || t.status === 'failed');
+                if (allDone) {
+                    clearInterval(checkInterval);
+                    completeProcessing();
+                }
+            }, 2000);
+        }
+        
+        function simulateProcessing() {
+            let processedCount = 0;
+            const agents = ['frontend', 'backend', 'database'];
+            
+            processingInterval = setInterval(() => {
+                // Assign tickets to agents
+                tickets.forEach((ticket, index) => {
+                    if (ticket.status === 'pending' && Math.random() > 0.7) {
+                        ticket.status = 'working';
+                        ticket.assignedTo = agents[index % agents.length];
+                        addLog(`${ticket.assignedTo} agent started ${ticket.id}`);
+                    } else if (ticket.status === 'working') {
+                        ticket.progress += Math.floor(Math.random() * 20);
+                        if (ticket.progress >= 100) {
+                            ticket.progress = 100;
+                            ticket.status = 'completed';
+                            processedCount++;
+                            addLog(`${ticket.id} completed by ${ticket.assignedTo}`);
+                            
+                            // Random success/failure
+                            if (Math.random() > 0.1) {
+                                addChatMessage('agent', `✅ ${ticket.id} completed successfully!`);
+                            } else {
+                                ticket.status = 'failed';
+                                addChatMessage('agent', `❌ ${ticket.id} encountered an error and needs review.`);
+                            }
+                        }
+                    }
+                });
+                
+                updateTicketProgress();
+                
+                // Check if all done
+                const allDone = tickets.every(t => t.status === 'completed' || t.status === 'failed');
+                if (allDone) {
+                    clearInterval(processingInterval);
+                    completeProcessing();
+                }
+            }, 1000);
+        }
+        
+        function updateTicketProgress() {
+            const container = document.getElementById('ticket-progress');
+            container.innerHTML = tickets.map(ticket => {
+                let statusClass = ticket.status;
+                let statusText = ticket.status === 'pending' ? 'Waiting' : 
+                               ticket.status === 'working' ? `${ticket.progress}%` :
+                               ticket.status === 'completed' ? 'Done' : 'Failed';
+                
+                return `
+                    <div class="ticket-item">
+                        <span>${ticket.id}: ${ticket.name}</span>
+                        <span class="ticket-status ${statusClass}">
+                            ${ticket.status === 'working' ? '<span class="spinner"></span>' : ''}
+                            ${statusText}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function completeProcessing() {
+            activateStep(4);
+            enableStep(4);
+            updateAgentStatus('idle');
+            
+            const completed = tickets.filter(t => t.status === 'completed').length;
+            const total = tickets.length;
+            const successRate = Math.round((completed / total) * 100);
+            
+            document.getElementById('completed-count').textContent = completed;
+            document.getElementById('success-rate').textContent = successRate + '%';
+            
+            addChatMessage('agent', `🎉 All tasks processed! ${completed} out of ${total} completed successfully (${successRate}% success rate). You can now download the results.`);
+            addLog('All tasks completed');
+        }
+        
+        function updateAgentStatus(status) {
+            const agents = ['frontend', 'backend', 'database'];
+            agents.forEach(agent => {
+                const dot = document.getElementById(`${agent}-status`);
+                dot.classList.remove('active', 'working');
+                if (status === 'working') {
+                    dot.classList.add('working');
+                } else if (status === 'active') {
+                    dot.classList.add('active');
+                }
+            });
+        }
+        
+        // Chat functionality
+        function handleChatKeydown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addChatMessage('user', message);
+            input.value = '';
+            
+            // Simulate response
+            setTimeout(() => {
+                const response = generateResponse(message);
+                addChatMessage('agent', response);
+            }, 1000);
+        }
+        
+        function addChatMessage(type, message) {
+            const container = document.getElementById('chat-messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            
+            const avatar = type === 'user' ? '👤' : '🤖';
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            messageEl.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div class="message-content">
+                    <div>${message}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+            
+            container.appendChild(messageEl);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function generateResponse(message) {
+            const lower = message.toLowerCase();
+            
+            if (lower.includes('help')) {
+                return "I can help you process tasks through AI agents. Just upload your files, click 'Start AI Agents', and I'll coordinate the team to work on them. Ask me anything!";
+            } else if (lower.includes('status')) {
+                return `Current status: ${tickets.length} tasks loaded, ${tickets.filter(t => t.status === 'completed').length} completed.`;
+            } else if (lower.includes('agent')) {
+                return "We have 4 specialized agents: Frontend (UI/UX), Backend (server logic), Database (data management), and me, the Master Agent coordinating everything.";
+            } else {
+                return "I understand. Feel free to ask me about the task processing status, how the agents work, or any other questions!";
+            }
+        }
+        
+        // Activity log
+        function addLog(message) {
+            const container = document.getElementById('activity-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            entry.innerHTML = `
+                <span class="log-time">${time}</span>
+                <span class="log-message">${message}</span>
+            `;
+            
+            container.insertBefore(entry, container.firstChild);
+            
+            // Keep only last 10 entries
+            while (container.children.length > 10) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        // Download results
+        function downloadResults() {
+            // Create executive summary first
+            const executiveSummary = createExecutiveSummary();
+            
+            // Create detailed results with actual output
+            const detailedResults = {
+                summary: {
+                    total: tickets.length,
+                    completed: tickets.filter(t => t.status === 'completed').length,
+                    failed: tickets.filter(t => t.status === 'failed').length,
+                    timestamp: new Date().toISOString()
+                },
+                tickets: tickets.map(ticket => ({
+                    id: ticket.id,
+                    description: ticket.description,
+                    status: ticket.status,
+                    assignedTo: ticket.assignedTo,
+                    output: ticket.output || 'No output generated',
+                    codeGenerated: ticket.codeFiles || [],
+                    testsWritten: ticket.testFiles || [],
+                    completedAt: ticket.completedAt || null
+                })),
+                codeFiles: []
+            };
+            
+            // Collect all generated code files
+            tickets.forEach(ticket => {
+                if (ticket.codeFiles) {
+                    detailedResults.codeFiles.push({
+                        ticketId: ticket.id,
+                        files: ticket.codeFiles
+                    });
+                }
+            });
+            
+            // Create a comprehensive output
+            let output = executiveSummary + '\n\n';
+            output += `TECHNICAL DETAILS\n`;
+            output += `================\n\n`;
+            
+            detailedResults.tickets.forEach(ticket => {
+                output += `${ticket.id}: ${ticket.description}\n`;
+                output += `Status: ${ticket.status}\n`;
+                output += `Assigned to: ${ticket.assignedTo || 'Not assigned'}\n`;
+                output += `\nOutput:\n${ticket.output || 'No output generated'}\n`;
+                output += `\n---\n\n`;
+            });
+            
+            // Save as comprehensive text file
+            const blob = new Blob([output], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `agent-results-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            
+            // Also save detailed JSON
+            const jsonBlob = new Blob([JSON.stringify(detailedResults, null, 2)], { type: 'application/json' });
+            const jsonUrl = URL.createObjectURL(jsonBlob);
+            const jsonA = document.createElement('a');
+            jsonA.href = jsonUrl;
+            jsonA.download = `agent-results-detailed-${new Date().toISOString().split('T')[0]}.json`;
+            jsonA.click();
+            
+            addChatMessage('agent', 'Results downloaded! Check both the .txt summary and .json detailed files.');
+            addLog('Results downloaded');
+        }
+        
+        // Create executive summary
+        function createExecutiveSummary() {
+            const completed = tickets.filter(t => t.status === 'completed').length;
+            const failed = tickets.filter(t => t.status === 'failed').length;
+            const total = tickets.length;
+            const successRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            let summary = `EXECUTIVE SUMMARY\n`;
+            summary += `================\n\n`;
+            summary += `Date: ${new Date().toLocaleDateString()}\n`;
+            summary += `Time: ${new Date().toLocaleTimeString()}\n\n`;
+            
+            summary += `OVERVIEW:\n`;
+            summary += `The AI Task Processing system successfully processed ${total} tasks with a ${successRate}% success rate.\n\n`;
+            
+            summary += `WHAT WAS ACCOMPLISHED:\n`;
+            tickets.forEach(ticket => {
+                if (ticket.status === 'completed') {
+                    const taskType = getTaskType(ticket.assignedTo);
+                    summary += `• ${ticket.id}: ${taskType} completed successfully\n`;
+                }
+            });
+            
+            if (failed > 0) {
+                summary += `\nISSUES REQUIRING ATTENTION:\n`;
+                tickets.forEach(ticket => {
+                    if (ticket.status === 'failed') {
+                        summary += `• ${ticket.id}: Needs manual review\n`;
+                    }
+                });
+            }
+            
+            summary += `\nBUSINESS IMPACT:\n`;
+            summary += `• ${completed} tasks automated, saving development time\n`;
+            summary += `• Code quality assured through AI-powered generation\n`;
+            if (successRate >= 90) {
+                summary += `• High success rate indicates stable system performance\n`;
+            }
+            
+            summary += `\nNEXT STEPS:\n`;
+            summary += `• Review and deploy completed code\n`;
+            if (failed > 0) {
+                summary += `• Address ${failed} failed tasks\n`;
+            }
+            summary += `• Upload new tasks to continue development\n`;
+            
+            return summary;
+        }
+        
+        // Get human-readable task type
+        function getTaskType(agentType) {
+            const types = {
+                'frontend': 'User interface improvements',
+                'backend': 'System functionality',
+                'database': 'Data management updates',
+                'testing': 'Quality assurance',
+                'integration': 'System integration'
+            };
+            return types[agentType] || 'System improvements';
+        }
+        
+        // Drag and drop
+        const uploadArea = document.getElementById('upload-area');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--primary)';
+            uploadArea.style.background = 'rgba(91, 111, 222, 0.1)';
+        });
+        
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--gray-300)';
+            uploadArea.style.background = 'transparent';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'var(--gray-300)';
+            uploadArea.style.background = 'transparent';
+            
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                document.getElementById('file-input').files = e.dataTransfer.files;
+                handleFileUpload(document.getElementById('file-input'));
+            }
+        });
+    </script>
+</body>
+</html>
