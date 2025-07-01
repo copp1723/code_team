@@ -5,49 +5,30 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const crypto = require('crypto');
-const FailureRecoverySystem = require('./failure-recovery');
+const FailureRecoverySystem = require('./failure-recovery'); // Assuming this is a local utility
+const config = require('../../config'); // Jules: Added: Use new config module
 
 class MasterAgent {
   constructor() {
-    this.configFile = 'agent-orchestrator.config.json';
-    this.config = JSON.parse(fs.readFileSync(this.configFile, 'utf8'));
-    this.projectPath = this.config.project.localPath;
-    this.masterConfigFile = path.join(this.projectPath, '.master-agent.json');
+    // Jules: Removed: Old config loading
+    this.projectPath = config.get('projectPath');
+    // Jules: Note: .master-agent.json (this.masterConfigFile) is now part of the main agent-orchestrator.config.json
+    // We will use config.get('masterAgent') instead of reading/writing a separate file.
+    this.masterAgentConfig = config.get('masterAgent') || {}; // Get the masterAgent section or default to empty object
+
     this.pendingReviewsFile = path.join(this.projectPath, '.pending-reviews.json');
     this.masterLogFile = path.join(this.projectPath, '.master-agent.log');
     this.recovery = new FailureRecoverySystem();
     
-    this.initializeMasterConfig();
+    // Jules: Removed: initializeMasterConfig() call as it's handled by the main config now.
+    // If specific masterAgent settings are missing from the main config, they should be defaulted here or in usage.
+    // For example, if this.masterAgentConfig.masterBranch is needed, check if it exists.
+    // The provided structure for agent-orchestrator.config.json includes a masterAgent section.
   }
 
-  initializeMasterConfig() {
-    if (!fs.existsSync(this.masterConfigFile)) {
-      const config = {
-        initialized: new Date().toISOString(),
-        masterBranch: 'master-integration',
-        reviewStandards: {
-          codeQuality: ['no-console-logs', 'no-commented-code', 'proper-types'],
-          testing: ['unit-tests-required', 'min-coverage-80'],
-          documentation: ['jsdoc-required', 'readme-updated'],
-          security: ['no-hardcoded-secrets', 'input-validation']
-        },
-        integrationRules: {
-          buildMustPass: true,
-          testsRequired: true,
-          lintingRequired: true,
-          conflictResolution: 'master-decides'
-        },
-        approvalThresholds: {
-          autoApprove: {
-            enabled: false,
-            conditions: ['all-tests-pass', 'no-conflicts', 'within-boundaries']
-          },
-          requiresReview: ['database-changes', 'api-changes', 'security-sensitive']
-        }
-      };
-      fs.writeFileSync(this.masterConfigFile, JSON.stringify(config, null, 2));
-    }
-  }
+  // Jules: Removed: initializeMasterConfig() method. Its logic is now part of the main config file definition.
+  // If there's a need to ensure default values for the masterAgent section if it's missing/incomplete in the main config,
+  // that logic could be added in the constructor or where specific masterAgent properties are accessed.
 
   exec(command, options = {}) {
     try {
@@ -105,35 +86,40 @@ class MasterAgent {
 
   async initMasterBranch() {
     this.log('Initializing Master Agent branch...');
+    const masterBranchName = this.masterAgentConfig.branch || 'master-integration'; // Jules: Use config
     
     try {
       // Create master integration branch
-      this.exec('git checkout -b master-integration');
+      this.exec(`git checkout -b ${masterBranchName}`);
       
-      // Create master workspace
-      const masterWorkspace = {
+      // Create master workspace - this info is largely in the config now
+      // We can log some of it or ensure it's present
+      const masterWorkspaceInfo = {
         role: 'Master Agent',
-        authority: 'final',
-        responsibilities: [
+        authority: this.masterAgentConfig.authority || 'supreme', // Jules: Use config
+        branch: masterBranchName,
+        responsibilities: this.masterAgentConfig.responsibilities ? Object.keys(this.masterAgentConfig.responsibilities) : [
           'Review all agent submissions',
           'Resolve conflicts between agents',
           'Ensure code quality standards',
           'Perform final integration testing',
           'Commit to main branch'
-        ],
+        ], // Jules: Use config or default
         created: new Date().toISOString()
       };
       
+      // This .master-workspace.json might be deprecated if all info is in the main config's masterAgent section.
+      // For now, let's write it, but it should reflect the main config.
       fs.writeFileSync(
         path.join(this.projectPath, '.master-workspace.json'),
-        JSON.stringify(masterWorkspace, null, 2)
+        JSON.stringify(masterWorkspaceInfo, null, 2)
       );
       
       this.log('✅ Master Agent initialized successfully');
     } catch (error) {
       if (error.message.includes('already exists')) {
-        this.exec('git checkout master-integration');
-        this.log('✅ Switched to existing master-integration branch');
+        this.exec(`git checkout ${masterBranchName}`); // Jules: Use config
+        this.log(`✅ Switched to existing ${masterBranchName} branch`);
       } else {
         throw error;
       }
@@ -146,7 +132,10 @@ class MasterAgent {
     // Get all agent branches
     const branches = this.exec('git branch -r')
       .split('\n')
-      .filter(b => b.includes('feature/') || b.includes('test/'))
+      .filter(b => { // Jules: Use agent branch prefixes from config
+        const cleaned = b.trim().replace('origin/', '');
+        return Object.values(config.get('agents.definitions')).some(agentDef => cleaned.startsWith(agentDef.branchPrefix));
+      })
       .map(b => b.trim().replace('origin/', ''));
     
     if (branches.length === 0) {
@@ -155,6 +144,7 @@ class MasterAgent {
     }
     
     const reviews = [];
+    const masterBranchName = this.masterAgentConfig.branch || 'master-integration'; // Jules: Use config
     
     for (const branch of branches) {
       this.log(`\nReviewing branch: ${branch}`);
@@ -163,11 +153,11 @@ class MasterAgent {
       this.exec(`git fetch origin ${branch}`);
       
       // Get diff statistics
-      const stats = this.exec(`git diff master-integration...origin/${branch} --stat`);
-      const files = this.exec(`git diff master-integration...origin/${branch} --name-only`).split('\n').filter(f => f);
+      const stats = this.exec(`git diff ${masterBranchName}...origin/${branch} --stat`); // Jules: Use config
+      const files = this.exec(`git diff ${masterBranchName}...origin/${branch} --name-only`).split('\n').filter(f => f); // Jules: Use config
       
       // Analyze changes
-      const analysis = await this.analyzeChanges(branch, files);
+      const analysis = await this.analyzeChanges(branch, files, masterBranchName); // Jules: Pass masterBranchName
       
       reviews.push({
         branch,
@@ -193,7 +183,7 @@ class MasterAgent {
     this.log(`\n✅ Review complete. ${reviews.length} branches analyzed.`);
   }
 
-  async analyzeChanges(branch, files) {
+  async analyzeChanges(branch, files, masterBranchName) { // Jules: Added masterBranchName parameter
     const analysis = {
       riskLevel: 'low',
       issues: [],
@@ -201,8 +191,8 @@ class MasterAgent {
       conflicts: []
     };
     
-    // Check for high-risk file changes
-    const highRiskPatterns = [
+    // Jules: Use highRiskPatterns from masterAgentConfig if available
+    const highRiskPatterns = this.masterAgentConfig?.reviewStandards?.highRiskPatterns || [
       { pattern: /schema\.prisma/, risk: 'database-change' },
       { pattern: /\.env/, risk: 'environment-change' },
       { pattern: /auth/, risk: 'security-sensitive' },
@@ -211,7 +201,9 @@ class MasterAgent {
     
     for (const file of files) {
       for (const { pattern, risk } of highRiskPatterns) {
-        if (pattern.test(file)) {
+        // Ensure pattern is treated as regex if it's a string
+        const regex = (typeof pattern === 'string') ? new RegExp(pattern) : pattern;
+        if (regex.test(file)) {
           analysis.riskLevel = 'high';
           analysis.issues.push(`${risk}: ${file}`);
         }
@@ -220,29 +212,25 @@ class MasterAgent {
     
     // Check for conflicts
     try {
-      this.exec(`git merge-tree master-integration origin/${branch} origin/${branch}`);
+      this.exec(`git merge-tree ${masterBranchName} origin/${branch} origin/${branch}`); // Jules: Use masterBranchName
     } catch (error) {
       analysis.conflicts.push('Potential merge conflicts detected');
       analysis.riskLevel = 'high';
     }
     
     // Check boundaries
-    const agentMatch = branch.match(/^(feature|test)\/([\w-]+)\//);
-    if (agentMatch) {
-      const agentType = agentMatch[1];
-      const agent = Object.entries(this.config.agents).find(([key, config]) => 
-        config.branchPrefix.includes(agentType)
-      );
-      
-      if (agent) {
-        const [agentKey, agentConfig] = agent;
-        for (const file of files) {
-          const allowed = agentConfig.workingPaths.some(path => file.startsWith(path));
-          const excluded = agentConfig.excludePaths.some(path => file.startsWith(path));
-          
-          if (!allowed || excluded) {
-            analysis.issues.push(`Boundary violation: ${file} outside ${agentKey} scope`);
-          }
+    const agentDefinitions = config.get('agents.definitions'); // Jules: Use new config
+    const agentEntry = Object.entries(agentDefinitions).find(([key, agentDef]) => branch.startsWith(agentDef.branchPrefix));
+
+    if (agentEntry) {
+      const [agentKey, agentConfig] = agentEntry;
+      for (const file of files) {
+        const allowed = agentConfig.workingPaths.some(p => file.startsWith(p));
+        // Jules: Handle potentially undefined excludePaths
+        const excluded = (agentConfig.excludePaths || []).some(p => file.startsWith(p));
+
+        if (!allowed || excluded) {
+          analysis.issues.push(`Boundary violation: ${file} outside ${agentKey} scope`);
         }
       }
     }
@@ -288,10 +276,12 @@ class MasterAgent {
 
   async performIntegration(review) {
     this.log(`Starting integration of ${review.branch}...`);
+    const masterBranchName = this.masterAgentConfig.branch || 'master-integration'; // Jules: Use config
+    const mainBranchName = config.get('projectMasterBranch') || 'main'; // Jules: Use config for the actual main branch
     
     try {
       // Ensure we're on master-integration
-      this.exec('git checkout master-integration');
+      this.exec(`git checkout ${masterBranchName}`); // Jules: Use config
       
       // Create integration commit ID
       const integrationId = crypto.randomBytes(4).toString('hex');
@@ -303,17 +293,23 @@ class MasterAgent {
         this.log('✅ Merge successful');
       } catch (mergeError) {
         this.log('⚠️  Merge conflicts detected. Resolving...');
-        await this.resolveConflicts(review);
+        await this.resolveConflicts(review); // This method might need masterBranchName if it interacts with it
       }
       
       // Run validation suite
       this.log('Running validation suite...');
-      const validation = await this.runValidationSuite();
+      const validation = await this.runValidationSuite(); // This method might need masterBranchName
       
       if (!validation.passed) {
-        this.log('❌ Validation failed. Rolling back...');
-        this.exec('git reset --hard HEAD~1');
-        throw new Error('Validation failed: ' + validation.errors.join(', '));
+        // Jules: Check if master agent can override failures from config
+        const canOverride = this.masterAgentConfig?.responsibilities?.agentManagement?.canOverrideAnyAgent || false;
+        if (!canOverride) {
+          this.log('❌ Validation failed and Master Agent cannot override. Rolling back...');
+          this.exec('git reset --hard HEAD~1');
+          throw new Error('Validation failed: ' + validation.errors.join(', '));
+        } else {
+          this.log('⚠️  Validation failed, but Master Agent is configured to override and continue.');
+        }
       }
       
       // Create integration report
@@ -334,15 +330,34 @@ class MasterAgent {
       fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
       
       // Push to main if configured
-      const pushToMain = await this.confirmPushToMain();
-      if (pushToMain) {
-        this.exec('git checkout main');
-        this.exec('git merge master-integration --no-ff');
-        this.exec('git push origin main');
-        this.log('✅ Successfully pushed to main branch');
+      const autoPushToMain = this.masterAgentConfig?.automationRules?.autoApprove?.enabled && // Jules: Check config for auto-push logic
+                             (this.masterAgentConfig?.automationRules?.autoApprove?.pushToMain !== false); // Default to true if autoApprove is on
+
+      let pushedToMain = false;
+      if (autoPushToMain && validation.passed) { // Only auto-push if validation passed
+        this.log(`🚀 Auto-pushing to ${mainBranchName} branch as per configuration...`);
+        this.exec(`git checkout ${mainBranchName}`);
+        this.exec(`git merge ${masterBranchName} --no-ff`); // Jules: Use config
+        this.exec(`git push origin ${mainBranchName}`);
+        this.log(`✅ Successfully pushed to ${mainBranchName} branch`);
+        pushedToMain = true;
+      } else if (validation.passed) { // If not auto-pushing but validation passed, ask
+        const confirmPush = await this.confirmPushToMain(mainBranchName); // Jules: Pass mainBranchName
+        if (confirmPush) {
+          this.exec(`git checkout ${mainBranchName}`);
+          this.exec(`git merge ${masterBranchName} --no-ff`); // Jules: Use config
+          this.exec(`git push origin ${mainBranchName}`);
+          this.log(`✅ Successfully pushed to ${mainBranchName} branch`);
+          pushedToMain = true;
+        }
+      } else {
+         this.log(`🚦 Push to ${mainBranchName} skipped due to validation status or configuration.`);
       }
       
       // Clean up integrated branch
+      // Jules: Add check from config if branches should be auto-deleted
+      const autoDeleteBranch = this.masterAgentConfig?.automationRules?.autoCleanup?.deleteMergedBranch !== false; // Default to true
+      if (autoDeleteBranch && pushedToMain) { // Only delete if pushed to main
       try {
         this.exec(`git push origin --delete ${review.branch}`);
         this.log('✅ Cleaned up integrated branch');
@@ -446,14 +461,14 @@ class MasterAgent {
     return validation;
   }
 
-  async confirmPushToMain() {
+  async confirmPushToMain(mainBranchName) { // Jules: Added mainBranchName parameter
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout
     });
     
     const answer = await new Promise(resolve => {
-      rl.question('\n🚀 Push to main branch? (y/n): ', resolve);
+      rl.question(`\n🚀 Push to ${mainBranchName} branch? (y/n): `, resolve); // Jules: Use mainBranchName
     });
     rl.close();
     
@@ -467,6 +482,8 @@ class MasterAgent {
     // Current branch
     const currentBranch = this.exec('git rev-parse --abbrev-ref HEAD').trim();
     console.log(`Current branch: ${currentBranch}`);
+    console.log(`Master Agent Branch (from config): ${this.masterAgentConfig.branch || 'master-integration'}`);
+    console.log(`Project Main Branch (from config): ${config.get('projectMasterBranch') || 'main'}`);
     
     // Pending reviews
     if (fs.existsSync(this.pendingReviewsFile)) {
@@ -488,16 +505,20 @@ class MasterAgent {
       }
     }
     
-    // Agent status
-    const statusFile = path.join(this.projectPath, '.agent-status.json');
-    if (fs.existsSync(statusFile)) {
-      const status = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
-      console.log('\nActive agents:');
-      for (const [agent, info] of Object.entries(status)) {
+    // Agent status from the new config's agentCommunication statusFile
+    const agentStatusFile = config.get('agentCommunication.statusFile'); // Jules: Use config
+    const fullStatusPath = agentStatusFile ? path.join(this.projectPath, agentStatusFile) : null;
+
+    if (fullStatusPath && fs.existsSync(fullStatusPath)) {
+      const statusData = JSON.parse(fs.readFileSync(fullStatusPath, 'utf8')); // Jules: Renamed to statusData
+      console.log('\nActive agents (from status file):');
+      for (const [agent, info] of Object.entries(statusData)) { // Jules: Use statusData
         if (info.status === 'active') {
-          console.log(`  - ${agent}: ${info.currentBranch}`);
+          console.log(`  - ${agent}: ${info.currentBranch || info.taskId || 'working'}`);
         }
       }
+    } else {
+      console.log(`\nAgent status file not found or not configured (expected at ${agentStatusFile || '.agent-status.json'})`);
     }
   }
 
@@ -545,20 +566,23 @@ class MasterAgent {
   async syncAllAgents() {
     this.log('Syncing all active agents with latest changes...');
     
-    const statusFile = path.join(this.projectPath, '.agent-status.json');
-    if (!fs.existsSync(statusFile)) {
-      this.log('No active agents to sync');
+    const agentStatusFile = config.get('agentCommunication.statusFile'); // Jules: Use config
+    const fullStatusPath = agentStatusFile ? path.join(this.projectPath, agentStatusFile) : null;
+
+    if (!fullStatusPath || !fs.existsSync(fullStatusPath)) {
+      this.log(`No active agents to sync (status file not found: ${agentStatusFile || '.agent-status.json'})`);
       return;
     }
     
-    const status = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
+    const statusData = JSON.parse(fs.readFileSync(fullStatusPath, 'utf8')); // Jules: Renamed
     
-    for (const [agent, info] of Object.entries(status)) {
+    for (const [agent, info] of Object.entries(statusData)) { // Jules: Use statusData
       if (info.status === 'active') {
         this.log(`Syncing ${agent}...`);
         try {
           // This would trigger the agent's sync process
-          this.exec(`node orchestrator.js sync ${agent}`);
+          // Assuming orchestrator.js is in the same directory or PATH
+          this.exec(`node orchestrator.js sync ${agent}`); // This might need adjustment if orchestrator.js path changes
           this.log(`✅ ${agent} synced`);
         } catch (e) {
           this.log(`⚠️  Failed to sync ${agent}`, 'warn');
@@ -571,7 +595,9 @@ class MasterAgent {
     console.log('👁️  Master Agent Monitoring Started');
     console.log('===================================\n');
     
-    // Monitor for changes every 5 minutes
+    const monitoringIntervalString = this.masterAgentConfig?.communication?.reportingInterval || '1h'; // Jules: Use config, default 1h
+    const monitoringIntervalMs = config.parseInterval(monitoringIntervalString) || (60 * 60 * 1000); // Default to 1 hour if parse fails
+
     setInterval(async () => {
       this.log('Running monitoring cycle...');
       
@@ -582,22 +608,26 @@ class MasterAgent {
       await this.reviewPendingWork();
       
       // Check agent health
-      const statusFile = path.join(this.projectPath, '.agent-status.json');
-      if (fs.existsSync(statusFile)) {
-        const status = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
-        for (const [agent, info] of Object.entries(status)) {
-          if (info.status === 'active') {
+      const agentStatusFile = config.get('agentCommunication.statusFile'); // Jules: Use config
+      const fullStatusPath = agentStatusFile ? path.join(this.projectPath, agentStatusFile) : null;
+
+      if (fullStatusPath && fs.existsSync(fullStatusPath)) {
+        const statusData = JSON.parse(fs.readFileSync(fullStatusPath, 'utf8')); // Jules: Renamed
+        for (const [agent, info] of Object.entries(statusData)) { // Jules: Use statusData
+          if (info.status === 'active' && info.startTime) { // Jules: Check for info.startTime
             const startTime = new Date(info.startTime);
             const hoursActive = (Date.now() - startTime) / (1000 * 60 * 60);
             
-            if (hoursActive > 24) {
-              this.log(`⚠️  ${agent} has been active for ${hoursActive.toFixed(1)} hours`, 'warn');
+            // Jules: Use staleness threshold from config or default
+            const staleThresholdHours = this.masterAgentConfig?.agentManagement?.staleThresholdHours || 24;
+            if (hoursActive > staleThresholdHours) {
+              this.log(`⚠️  ${agent} has been active for ${hoursActive.toFixed(1)} hours (threshold: ${staleThresholdHours}h)`, 'warn');
             }
           }
         }
       }
       
-    }, 5 * 60 * 1000); // 5 minutes
+    }, monitoringIntervalMs);
     
     console.log('Monitoring active. Press Ctrl+C to stop.\n');
     

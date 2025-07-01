@@ -142,11 +142,18 @@ build/
 console.log('\n⚙️  Updating configuration...');
 const configPath = 'agent-orchestrator.config.json';
 if (fs.existsSync(configPath)) {
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  config.project.localPath = '../test-project';
-  config.project.name = 'test-project';
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-  console.log('✅ Configuration updated to use test project');
+  try {
+    const configContent = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    // Jules: Changed: Update projectPath directly at the root
+    configContent.projectPath = '../test-project';
+    // Jules: Removed: config.project.name as it's not part of the new top-level structure.
+    // If a project name is needed, it should be added to the new config structure explicitly.
+    fs.writeFileSync(configPath, JSON.stringify(configContent, null, 2));
+    console.log('✅ Configuration updated to use test project (projectPath set to ../test-project)');
+  } catch (e) {
+    console.error(`❌ Error updating ${configPath}: ${e.message}`);
+    console.warn(`⚠️ Please ensure ${configPath} is valid JSON and manually set projectPath if needed.`);
+  }
 }
 
 // Create initial tickets

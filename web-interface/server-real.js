@@ -4,7 +4,8 @@ const http = require('http');
 const WebSocket = require('ws');
 const { exec, spawn } = require('child_process');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs'); // fs is used extensively for file operations here
+const config = require('../src/config'); // Jules: Added: Use new config module
 
 const app = express();
 const server = http.createServer(app);
@@ -133,45 +134,71 @@ function checkMasterStatus(repository, ws) {
 }
 
 function initializeMaster(repository, ws) {
-  const orchestratorPath = path.dirname(__dirname);
-  
-  // Copy necessary files to the target repository
-  const filesToCopy = [
-    'master-agent.js',
-    'master-agent-config.json',
-    'agent-orchestrator.config.json',
-    'ai-agent.js',
-    'ai-agent-engine.js'
-  ];
-  
+  const orchestratorRootPath = path.resolve(__dirname, '..'); // Path to the root of the orchestrator project
+  const mainConfigFilePath = path.join(orchestratorRootPath, 'agent-orchestrator.config.json');
+  const targetConfigFilePath = path.join(repository, 'agent-orchestrator.config.json');
+
   ws.send(JSON.stringify({
     type: 'terminal-output',
     output: `Initializing master agent in ${repository}...`
   }));
-  
-  // Execute initialization
-  exec(`cd "${orchestratorPath}" && node master-agent.js init "${repository}"`, 
-    { maxBuffer: 1024 * 1024 },
-    (error, stdout, stderr) => {
-      if (error) {
-        ws.send(JSON.stringify({
-          type: 'terminal-output',
-          output: `Error: ${error.message}\n${stderr}`
-        }));
-      } else {
-        ws.send(JSON.stringify({
-          type: 'terminal-output',
-          output: stdout
-        }));
-        
-        ws.send(JSON.stringify({
-          type: 'master-initialized',
-          repository: repository
-        }));
-      }
+
+  try {
+    if (!fs.existsSync(mainConfigFilePath)) {
+      ws.send(JSON.stringify({ type: 'error', message: 'Main agent-orchestrator.config.json not found in orchestrator root.' }));
+      return;
     }
-  );
+
+    if (fs.existsSync(targetConfigFilePath)) {
+      ws.send(JSON.stringify({ type: 'terminal-output', output: `ℹ️ agent-orchestrator.config.json already exists in ${repository}. Skipping copy. Attempting to update projectPath.` }));
+    } else {
+      fs.copyFileSync(mainConfigFilePath, targetConfigFilePath);
+      ws.send(JSON.stringify({ type: 'terminal-output', output: `✅ Copied agent-orchestrator.config.json to ${repository}` }));
+    }
+
+    // Update projectPath in the target repository's config
+    let targetConfigContent = JSON.parse(fs.readFileSync(targetConfigFilePath, 'utf8'));
+    // Assuming projectPath should be relative to the new repo's root, or absolute.
+    // For simplicity, setting to "." assuming scripts in target repo run from its root.
+    // A more robust solution might involve making it absolute or prompting.
+    targetConfigContent.projectPath = ".";
+    fs.writeFileSync(targetConfigFilePath, JSON.stringify(targetConfigContent, null, 2));
+    ws.send(JSON.stringify({ type: 'terminal-output', output: `✅ Updated projectPath in ${targetConfigFilePath} to "."` }));
+
+    // The original command `node master-agent.js init "${repository}"` might still be relevant
+    // if `master-agent.js init` does more than just config setup (e.g., git branch creation).
+    // This command would now operate using the config file already placed in `repository`.
+    // We need to ensure master-agent.js is available or copied to the target repo if it's meant to run there.
+    // For now, let's assume master-agent.js is part of what might be in a target repo or is called from orchestrator context.
+    // The original exec was: `cd "${orchestratorPath}" && node master-agent.js init "${repository}"`
+    // This implies master-agent.js is in orchestratorPath/src/core/agents (based on previous structure).
+    // Let's adjust to call it correctly, assuming it now uses the config within the target repo.
+
+    const masterAgentScriptPath = path.join(orchestratorRootPath, 'src', 'core', 'agents', 'master-agent.js');
+    if (!fs.existsSync(masterAgentScriptPath)) {
+         ws.send(JSON.stringify({ type: 'error', message: `master-agent.js not found at ${masterAgentScriptPath}` }));
+         return;
+    }
+
+    // Execute initialization (e.g., git setup within the target repo)
+    // The `master-agent.js init` should be smart enough to use the config in its CWD if not told otherwise.
+    exec(`node "${masterAgentScriptPath}" init`,
+      { cwd: repository, maxBuffer: 1024 * 1024 }, // Run init from within the target repository
+      (error, stdout, stderr) => {
+        if (error) {
+          ws.send(JSON.stringify({ type: 'terminal-output', output: `Error during master-agent init: ${error.message}\n${stderr}` }));
+        } else {
+          ws.send(JSON.stringify({ type: 'terminal-output', output: stdout }));
+          ws.send(JSON.stringify({ type: 'master-initialized', repository: repository }));
+        }
+      }
+    );
+
+  } catch (e) {
+    ws.send(JSON.stringify({ type: 'error', message: `Failed during initializeMaster: ${e.message}` }));
+  }
 }
+
 
 function loadTicketsForReal(params, ws) {
   const { content, repository } = params;
@@ -538,11 +565,16 @@ function executeTerminalCommand(command, ws) {
 }
 
 // Start server
-const PORT = process.env.PORT || 8080;
+// Jules: Changed: Use port from the new config module
+const PORT = config.get('web.port') || process.env.PORT || 8080;
 server.listen(PORT, () => {
-  console.log(`Multi-Agent Orchestrator Web Interface running on http://localhost:${PORT}`);
-  console.log(`WebSocket server ready on ws://localhost:${PORT}`);
+  const host = config.get('web.host') || 'localhost'; // Jules: Use host from config
+  console.log(`Multi-Agent Orchestrator Web Interface running on http://${host}:${PORT}`);
+  console.log(`WebSocket server ready on ws://${host}:${PORT}`);
   console.log(`Repository: ${currentRepository || 'Not selected'}`);
+  // Jules: API key status is now checked by the config module itself at startup.
+  console.log(`🤖 OpenRouter API: ${config.get('api.openrouter.apiKey') ? '✓ Configured' : '✗ Missing (Check .env & config validation)'}`);
+  console.log(`💾 Supermemory API: ${config.get('api.supermemory.apiKey') && config.get('api.supermemory.enabled') ? '✓ Configured & Enabled' : (config.get('api.supermemory.apiKey') ? '✓ Configured (Disabled in config)' : '✗ Missing')}`);
 });
 
 // Graceful shutdown

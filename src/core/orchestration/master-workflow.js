@@ -6,12 +6,15 @@ const path = require('path');
 const AIValidationLayer = require('./ai-validation-layer');
 const FailureRecoverySystem = require('./failure-recovery');
 const ResourceMonitor = require('./resource-monitor');
-const HumanOversightSystem = require('./human-oversight');
+const HumanOversightSystem = require('./human-oversight'); // Assuming local utility
+const config = require('../../config'); // Jules: Added: Use new config module
 
 class MasterAgentWorkflow {
   constructor() {
-    this.config = JSON.parse(fs.readFileSync('master-agent-config.json', 'utf8'));
-    this.orchestratorConfig = JSON.parse(fs.readFileSync('agent-orchestrator.config.json', 'utf8'));
+    // Jules: Changed: Get masterAgent specific config and general orchestrator config from the single source
+    this.masterAgentConfig = config.get('masterAgent') || {};
+    this.orchestratorConfig = config.get(); // Gets the whole config object
+
     this.workflowState = {
       id: `workflow-${Date.now()}`,
       startTime: new Date().toISOString(),
@@ -196,9 +199,10 @@ ${summary.nextSteps.map(n => `- ${n}`).join('\n')}
     console.log(`\n🚀 Executing Master Agent Workflow: ${workflowName}`);
     console.log('='.repeat(50));
     
-    const workflow = this.config.masterAgent.workflows[workflowName];
-    if (!workflow) {
-      throw new Error(`Unknown workflow: ${workflowName}`);
+    // Jules: Changed: Access workflow from this.masterAgentConfig
+    const workflow = this.masterAgentConfig.workflows?.[workflowName];
+    if (!workflow || !workflow.steps) { // Jules: Added check for workflow.steps
+      throw new Error(`Unknown or improperly configured workflow: ${workflowName}`);
     }
 
     for (const step of workflow.steps) {
@@ -219,7 +223,8 @@ ${summary.nextSteps.map(n => `- ${n}`).join('\n')}
         };
         console.error(`❌ ${step} failed: ${error.message}`);
         
-        if (this.config.masterAgent.responsibilities.integration.rollbackOnFailure) {
+        // Jules: Changed: Access rollbackOnFailure from this.masterAgentConfig
+        if (this.masterAgentConfig.responsibilities?.integration?.rollbackOnFailure) {
           await this.rollback();
         }
         throw error;
@@ -309,9 +314,11 @@ ${summary.nextSteps.map(n => `- ${n}`).join('\n')}
         issues: []
       };
       
+      const standards = this.masterAgentConfig.responsibilities?.codeReview?.standards; // Jules: Use masterAgentConfig
+
       // Check for test files
       const hasTests = files.some(f => f.includes('.test.') || f.includes('.spec.'));
-      if (!hasTests && this.config.masterAgent.responsibilities.codeReview.standards.testing.required) {
+      if (!hasTests && standards?.testing?.required) { // Jules: Use masterAgentConfig
         review.issues.push('No test files found');
         review.passed = false;
       }
@@ -322,8 +329,10 @@ ${summary.nextSteps.map(n => `- ${n}`).join('\n')}
         f.includes('.md') || 
         f.includes('doc')
       );
-      if (!hasDocUpdates && files.length > 5) {
+      // Jules: Use masterAgentConfig for documentation check, e.g. standards?.documentation?.required
+      if (standards?.documentation?.required && !hasDocUpdates && files.length > (standards.documentation.minFilesForDocUpdate || 5)) {
         review.issues.push('No documentation updates for significant changes');
+        // review.passed = false; // Optionally make this a failing condition
       }
       
       reviews.push(review);
@@ -345,20 +354,19 @@ ${summary.nextSteps.map(n => `- ${n}`).join('\n')}
     
     for (const review of reviews) {
       // Extract agent from branch name
-      const agentMatch = review.branch.match(/^(feature|test|fix)\/([\w-]+)\//);
-      if (!agentMatch) continue;
+      // Jules: Changed: Use orchestratorConfig (which is the full config object) to get agent definitions
+      const agentDefinitions = this.orchestratorConfig.agents?.definitions;
+      if (!agentDefinitions) continue;
+
+      const agentEntry = Object.entries(agentDefinitions).find(([key, agentDef]) => review.branch.startsWith(agentDef.branchPrefix));
       
-      const agentType = agentMatch[1];
-      const agent = Object.entries(this.orchestratorConfig.agents).find(([key, config]) => 
-        config.branchPrefix.includes(agentType)
-      );
-      
-      if (agent) {
-        const [agentKey, agentConfig] = agent;
+      if (agentEntry) {
+        const [agentKey, agentConfig] = agentEntry;
         
         for (const file of review.files) {
-          const allowed = agentConfig.workingPaths.some(path => file.startsWith(path));
-          const excluded = agentConfig.excludePaths.some(path => file.startsWith(path));
+          const allowed = agentConfig.workingPaths.some(p => file.startsWith(p));
+          // Jules: Handle potentially undefined excludePaths
+          const excluded = (agentConfig.excludePaths || []).some(p => file.startsWith(p));
           
           if (!allowed || excluded) {
             violations.push({
@@ -582,13 +590,16 @@ ${summary.nextSteps.map(n => `- ${n}`).join('\n')}
       v.status === 'passed' || v.status === 'warning'
     );
     
-    if (!allPassed && !this.config.masterAgent.responsibilities.agentManagement.canOverrideAnyAgent) {
+    // Jules: Changed: Access canOverrideAnyAgent from this.masterAgentConfig
+    if (!allPassed && !this.masterAgentConfig.responsibilities?.agentManagement?.canOverrideAnyAgent) {
       throw new Error('Validation failed');
     }
   }
 
   async pushToMain() {
     console.log('  Preparing to push to main branch...');
+    const mainBranchName = this.orchestratorConfig.projectMasterBranch || 'main'; // Jules: Use config
+    const masterIntegrationBranchName = this.masterAgentConfig.branch || 'master-integration'; // Jules: Use config
     
     // Final safety check
     const validation = this.workflowState.results
@@ -600,12 +611,12 @@ ${summary.nextSteps.map(n => `- ${n}`).join('\n')}
     }
     
     // Merge to main
-    this.exec('git checkout main');
-    this.exec('git merge master-integration --no-ff -m "Master Agent: Production deployment"');
+    this.exec(`git checkout ${mainBranchName}`); // Jules: Use config
+    this.exec(`git merge ${masterIntegrationBranchName} --no-ff -m "Master Agent: Production deployment"`); // Jules: Use config
     
     // Push
-    console.log('  Pushing to origin/main...');
-    this.exec('git push origin main');
+    console.log(`  Pushing to origin/${mainBranchName}...`); // Jules: Use config
+    this.exec(`git push origin ${mainBranchName}`); // Jules: Use config
     
     this.workflowState.results.push({
       step: 'push-to-main',
