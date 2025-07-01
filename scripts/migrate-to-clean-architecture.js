@@ -9,7 +9,7 @@ console.log('🚀 Starting Multi-Agent Orchestrator Migration...\n');
 const FILE_CATEGORIES = {
   agents: {
     pattern: /(agent|Agent)/,
-    files: ['ai-agent.js', 'senior-ai-agent.js', 'master-agent.js', 'senior-enhanced-agent.js'],
+    files: ['ai-agent.js', 'senior-ai-agent.js', 'master-agent.js'], // Removed senior-enhanced-agent.js
     destination: 'src/core/agents'
   },
   orchestration: {

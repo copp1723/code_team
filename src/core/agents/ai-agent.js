@@ -268,8 +268,11 @@ class AIEnabledAgent {
   async executeStandardMode() {
       // 1. Analyze the ticket
       console.log('1️⃣ Analyzing requirements...');
-      const analysis = await this.ai.analyzeTicket(this.ticket);
+      // Pass agent type to analysis for potentially type-specific models/prompts
+      const analysis = await this.ai.analyzeTicket({...this.ticket, agentType: this.type});
       console.log(`   Complexity: ${analysis.complexity}`);
+      console.log(`   Primary Goal: ${analysis.primaryGoal}`);
+      console.log(`   Key Features: ${analysis.keyFeatures?.join(', ') || 'N/A'}`);
       console.log(`   Estimated LOC: ${analysis.estimatedLinesOfCode}`);
       
       // 2. Get implementation plan
@@ -277,7 +280,8 @@ class AIEnabledAgent {
       const plan = await this.ai.generateImplementationPlan(this.ticket, this.type, analysis);
       
       // Save plan for reference
-      fs.writeFileSync(`.ai-plan-${this.ticket.id}.md`, plan);
+      const planFileName = `.ai-plan-${this.ticket.id}.md`;
+      fs.writeFileSync(planFileName, plan);
       console.log('   Plan saved to .ai-plan-' + this.ticket.id + '.md');
       
       // 3. Create/checkout branch
@@ -306,8 +310,10 @@ class AIEnabledAgent {
         const code = await this.ai.generateCode(
           this.type,
           file,
-          `${this.ticket.description}\n\nPlan:\n${plan}`,
-          existingCode
+          this.ticket.description, // Pass original ticket description
+          existingCode,
+          analysis, // Pass full analysis object
+          plan      // Pass the generated plan
         );
         
         // Validate AI-generated code
@@ -354,10 +360,19 @@ class AIEnabledAgent {
         console.log(`   ✅ Generated ${file} (Quality: ${review?.score || 75}/100)`);
         
         // Generate tests
-        if (!file.includes('.test.')) {
+        if (!file.includes('.test.') && !file.endsWith('.md')) { // Avoid generating tests for test files or markdown
           console.log(`   🧪 Generating tests for ${file}...`);
-          const tests = await this.ai.generateTests(this.type, file, code);
-          const testFile = file.replace(/\.(ts|tsx|js)$/, '.test.$1');
+          // Pass analysis to test generation for context if needed in the future
+          const tests = await this.ai.generateTests(this.type, file, code, analysis);
+          const testFile = file.replace(/\.(ts|tsx|js|jsx)$/, '.test.$1'); // Added jsx
+
+          // Ensure test directory exists
+          const testDir = path.dirname(testFile);
+          if (!fs.existsSync(testDir)) {
+            fs.mkdirSync(testDir, { recursive: true });
+            console.log(`   📁 Created test directory: ${testDir}`);
+          }
+
           fs.writeFileSync(testFile, tests);
           console.log(`   ✅ Generated ${testFile}`);
         }

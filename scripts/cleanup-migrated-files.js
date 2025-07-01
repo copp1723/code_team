@@ -29,7 +29,7 @@ const MIGRATED_FILES = [
   'restart-web-interface.sh',
   'senior-agent-metrics.js',
   'senior-ai-agent.js',
-  'senior-enhanced-agent.js',
+  // 'senior-enhanced-agent.js', // Removed as it's been deleted
   'setup-agents.sh',
   'setup-voice-agent.sh',
   'start-ai.sh',
