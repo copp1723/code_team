@@ -183,26 +183,55 @@ Ticket: ${ticket.id}
 Description: ${ticket.description}
 Notes: ${ticket.notes?.join('\n') || 'None'}
 
-Provide your analysis in this JSON format:
+Provide your analysis in this JSON format. Be specific and thorough:
 {
   "complexity": "simple|medium|complex",
   "estimatedLinesOfCode": number,
-  "requiredFiles": ["list", "of", "files", "to", "create", "or", "modify"],
-  "suggestedApproach": "brief approach",
-  "potentialChallenges": ["list", "of", "challenges"],
-  "testingStrategy": "how to test this"
+  "primaryGoal": "A concise statement of the main objective.",
+  "keyFeatures": ["A list of specific features or functionalities to implement."],
+  "coreLogicAreas": ["Identify main areas where logic needs to be developed or modified."],
+  "requiredFiles": ["list", "of", "files", "expected", "to", "be", "created", "or", "modified"],
+  "dependencies": ["Any new internal or external dependencies anticipated."],
+  "suggestedApproach": "A brief but clear technical approach to the implementation.",
+  "potentialChallenges": ["List potential technical challenges or risks."],
+  "testingStrategy": "Outline key aspects to test and how (e.g., unit tests for X, integration for Y)."
 }`;
 
     const response = await this.callOpenRouter([
-      { role: 'system', content: 'You are a senior software architect analyzing tickets.' },
+      { role: 'system', content: 'You are a meticulous software architect providing detailed analysis for a development ticket.' },
       { role: 'user', content: prompt }
-    ], 'openai/gpt-4');
+    ], this.modelConfig[ticket.agentType]?.analysis || 'openai/gpt-4'); // Allow agent-specific model for analysis
 
     try {
-      return JSON.parse(response);
+      const parsedResponse = JSON.parse(response);
+      // Ensure all new fields have default values if not provided by the LLM
+      return {
+        complexity: parsedResponse.complexity || 'medium',
+        estimatedLinesOfCode: parsedResponse.estimatedLinesOfCode || 100,
+        primaryGoal: parsedResponse.primaryGoal || ticket.description,
+        keyFeatures: parsedResponse.keyFeatures || [],
+        coreLogicAreas: parsedResponse.coreLogicAreas || [],
+        requiredFiles: parsedResponse.requiredFiles || [],
+        dependencies: parsedResponse.dependencies || [],
+        suggestedApproach: parsedResponse.suggestedApproach || "Standard implementation approach.",
+        potentialChallenges: parsedResponse.potentialChallenges || [],
+        testingStrategy: parsedResponse.testingStrategy || "Standard unit and integration tests.",
+        ...parsedResponse // Spread the original response to keep any other fields
+      };
     } catch (e) {
-      console.log('Failed to parse analysis, using defaults');
-      return { complexity: 'medium', estimatedLinesOfCode: 100 };
+      console.log('Failed to parse analysis, using defaults with enhanced structure');
+      return {
+        complexity: 'medium',
+        estimatedLinesOfCode: 100,
+        primaryGoal: ticket.description,
+        keyFeatures: [],
+        coreLogicAreas: [],
+        requiredFiles: [],
+        dependencies: [],
+        suggestedApproach: "Standard implementation approach.",
+        potentialChallenges: [],
+        testingStrategy: "Standard unit and integration tests."
+      };
     }
   }
 
@@ -213,23 +242,31 @@ Provide your analysis in this JSON format:
     const prompt = `${persona}
 
 You are implementing this ticket:
-${ticket.id}: ${ticket.description}
+Ticket ID: ${ticket.id}
+Description: ${ticket.description}
+Primary Goal: ${analysis.primaryGoal}
 
-Analysis: ${JSON.stringify(analysis, null, 2)}
+Detailed Analysis:
+${JSON.stringify(analysis, null, 2)}
 
 Existing code patterns in this project:
 ${examples}
 
-Create a detailed implementation plan with specific code snippets. Include:
-1. Files to create/modify
-2. Key code sections
-3. Integration points
-4. Error handling
-5. Testing approach
+Create a detailed, step-by-step implementation plan. For each step, specify:
+- The file(s) to be modified or created.
+- A concise description of the task for that step.
+- Key functions/modules/components to be developed or altered.
+- Specific code snippets or pseudocode for complex logic if applicable.
+- Any new dependencies to be added.
+- How to test this specific step or feature.
 
-Format your response as executable steps.`;
+The plan should be actionable and clear. Focus on the key features: ${analysis.keyFeatures?.join(', ') || 'core requirements'}.
+Address core logic areas: ${analysis.coreLogicAreas?.join(', ') || 'main logic'}.
+Consider potential challenges: ${analysis.potentialChallenges?.join(', ') || 'none listed'}.
 
-    const model = this.modelConfig[agent][analysis.complexity] || this.modelConfig[agent].complex;
+Format your response as a markdown document with numbered steps.`;
+
+    const model = this.modelConfig[agent]?.complex || 'anthropic/claude-sonnet-4'; // Use a capable model for planning
     
     return await this.callOpenRouter([
       { role: 'system', content: persona },
@@ -237,38 +274,44 @@ Format your response as executable steps.`;
     ], model);
   }
 
-  async generateCode(agent, file, requirements, existingCode = null) {
+  async generateCode(agent, file, requirements, existingCode = null, analysis = {}, plan = "") {
     const persona = this.agentPersonas[agent];
-    const model = this.modelConfig[agent].complex;
+    const model = this.modelConfig[agent]?.complex || 'anthropic/claude-opus-4'; // Use a very capable model for code gen
     
     const prompt = `${persona}
 
-Generate production-ready code for: ${file}
+Generate production-ready code for the file: ${file}
 
-Requirements:
-${requirements}
+Ticket Description: ${requirements}
+${analysis.primaryGoal ? `Primary Goal: ${analysis.primaryGoal}` : ''}
+${analysis.keyFeatures && analysis.keyFeatures.length > 0 ? `Key Features to implement in this file: ${analysis.keyFeatures.join(', ')}` : ''}
+
+Overall Plan:
+${plan || "Implement based on the ticket description and analysis."}
 
 ${existingCode ? `Existing code to modify:\n\`\`\`\n${existingCode}\n\`\`\`` : 'This is a new file.'}
 
 Project patterns to follow:
-- Use TypeScript
-- Follow existing import patterns
-- Include proper error handling
-- Add JSDoc comments
-- Make it testable
+- Use TypeScript with strict typing.
+- Adhere to SOLID principles and clean code practices.
+- Follow existing import patterns and project structure.
+- Implement comprehensive error handling (try-catch blocks, error logging).
+- Add detailed JSDoc comments for all functions, classes, and complex logic.
+- Ensure code is modular, reusable, and testable (e.g., by using dependency injection where appropriate).
+- Optimize for performance and security relevant to the task.
 
-Respond with ONLY the complete code, no explanations.`;
+Respond with ONLY the complete, production-quality code for the file ${file}. Do not include any explanations, markdown formatting, or anything other than the raw code.`;
 
     const code = await this.callOpenRouter([
       { role: 'system', content: persona },
       { role: 'user', content: prompt }
-    ], model, 0.3); // Lower temperature for more consistent code
+    ], model, 0.25); // Slightly lower temperature for more deterministic and high-quality code
     
     // Clean up response
-    return code.replace(/```[\w]*\n/g, '').replace(/```$/g, '').trim();
+    return code.replace(/```[\w\S]*\n?/g, '').replace(/```$/g, '').trim();
   }
 
-  async generateTests(agent, codeFile, implementation) {
+  async generateTests(agent, codeFile, implementation, analysis = {}) {
     const testFile = codeFile.replace(/\.(ts|tsx|js)$/, '.test.$1');
     const model = this.modelConfig.testing.unit;
     
