@@ -1,0 +1,113 @@
+{
+  "projectPath": "../test-project",
+  "projectMasterBranch": "main",
+  "projectGitRemoteUrl": "https://github.com/YOUR_USERNAME/YOUR_REPO.git",
+  "agents": {
+    "maxConcurrent": 3,
+    "syncInterval": "30m",
+    "heartbeatInterval": "30s",
+    "defaultCapabilities": ["general"],
+    "definitions": {
+      "frontend": {
+        "model": "anthropic/claude-3-sonnet-20240229",
+        "workingPaths": ["src/frontend", "src/shared", "src/components", "src/pages", "src/styles"],
+        "excludePaths": ["src/server", "prisma", "src/lib/api"],
+        "branchPrefix": "feature/frontend"
+      },
+      "backend": {
+        "model": "openai/gpt-4-turbo-preview",
+        "workingPaths": ["src/backend", "src/shared", "src/server", "src/lib/api", "prisma"],
+        "excludePaths": ["src/components", "src/pages", "src/styles"],
+        "branchPrefix": "feature/backend"
+      },
+      "database": {
+        "model": "anthropic/claude-3-opus-20240229",
+        "workingPaths": ["src/db", "prisma", "src/lib/db"],
+        "excludePaths": ["src/components", "src/pages", "src/server/api"],
+        "branchPrefix": "feature/database"
+      },
+      "integration": {
+        "model": "openai/gpt-4",
+        "workingPaths": ["src/integrations", "src/lib/integrations", "src/server/webhooks"],
+        "excludePaths": ["src/components", "prisma/migrations"],
+        "branchPrefix": "feature/integration"
+      },
+      "testing": {
+        "model": "openai/gpt-4",
+        "workingPaths": ["tests", "src/__tests__", "src/**/*.test.ts", "src/**/*.test.tsx"],
+        "excludePaths": [],
+        "branchPrefix": "test"
+      },
+      "general": {
+        "model": "anthropic/claude-3-sonnet-20240229",
+        "workingPaths": ["."],
+        "branchPrefix": "agent/general"
+      }
+    }
+  },
+  "api": {
+    "openrouter": {
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "timeout": 30000,
+      "retries": 3
+    },
+    "supermemory": {
+      "baseUrl": "https://api.supermemory.ai",
+      "timeout": 30000,
+      "enabled": true
+    }
+  },
+  "git": {
+    "branchPrefix": "agent/"
+  },
+  "resourceLimits": {
+    "maxTokensPerHour": 100000,
+    "maxCostPerDay": 50.00,
+    "maxConcurrentTasks": 5
+  },
+  "web": {
+    "port": 8080,
+    "host": "localhost",
+    "enableWebSocket": true,
+    "staticPath": "./web-interface"
+  },
+  "logging": {
+    "level": "info",
+    "toFile": true,
+    "directory": "./logs",
+    "maxFileSize": "10MB",
+    "maxFiles": 7
+  },
+  "security": {
+    "corsOrigins": ["http://localhost:3000", "http://localhost:8080"],
+    "rateLimitWindow": 900000,
+    "rateLimitMax": 100
+  },
+  "masterAgent": {
+    "authority": "supreme",
+    "branch": "master-integration",
+    "responsibilities": {},
+    "workflows": {},
+    "automationRules": {},
+    "communication": {}
+  },
+  "agentHierarchy": {
+    "master": { "level": 0, "permissions": ["all"], "canOverride": ["all"] },
+    "senior": { "level": 1, "permissions": ["review", "suggest"], "canOverride": ["junior"] },
+    "standard": { "level": 2, "permissions": ["develop", "test"], "canOverride": [] }
+  },
+  "integrationPipeline": {
+    "stages": []
+  },
+  "conflictResolution": {
+    "autoMergeStrategy": "rebase",
+    "conflictHandling": "manual",
+    "updateFrequency": "30m",
+    "priorityOrder": ["database", "backend", "integration", "frontend", "testing"]
+  },
+  "agentCommunication": {
+    "updateChannel": "filesystem",
+    "statusFile": ".agent-status.json",
+    "lockFile": ".agent-locks.json"
+  }
+}

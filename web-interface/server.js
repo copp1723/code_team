@@ -5,9 +5,11 @@ const http = require('http');
 const WebSocket = require('ws');
 const { exec, spawn } = require('child_process');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs'); // fs is still used for some file operations
 const { APIIntegration } = require('./api-integration');
+// Jules: require('dotenv').config(); is already called in src/config.js, but keeping here won't harm.
 require('dotenv').config();
+const config = require('../src/config'); // Jules: Added: Use new config module
 
 const app = express();
 const server = http.createServer(app);
@@ -517,19 +519,33 @@ function generateReport(type, ws) {
   }
 }
 
-function getAgentDetails(agent, ws) {
-  // Read agent configuration and status
-  const configFile = '../agent-orchestrator.config.json';
-  const statusFile = '../.agent-status.json';
-  
+function getAgentDetails(agentName, ws) { // Jules: Renamed agent to agentName
+  // Read agent configuration and status from the new config module
   try {
-    const config = fs.existsSync(configFile) ? JSON.parse(fs.readFileSync(configFile, 'utf8')) : {};
-    const status = fs.existsSync(statusFile) ? JSON.parse(fs.readFileSync(statusFile, 'utf8')) : {};
+    const agentConfig = config.get(`agents.definitions.${agentName}`) || {}; // Jules: Use new config
+
+    // Jules: Get status file path from config and read it
+    const statusFilePath = config.get('agentCommunication.statusFile');
+    let agentStatusFromFile = { status: 'idle' }; // Default status
+
+    // Construct absolute path for status file relative to projectPath defined in config
+    const projectPath = config.getProjectPathAbs(); // Get absolute project path
+    if (projectPath && statusFilePath) {
+        const absoluteStatusFilePath = path.join(projectPath, statusFilePath);
+        if (fs.existsSync(absoluteStatusFilePath)) {
+            const allStatuses = JSON.parse(fs.readFileSync(absoluteStatusFilePath, 'utf8'));
+            agentStatusFromFile = allStatuses[agentName] || { status: 'idle' };
+        } else {
+            console.warn(`Status file not found at: ${absoluteStatusFilePath}`);
+        }
+    } else {
+        console.warn('projectPath or agentCommunication.statusFile not defined in config. Cannot load agent status.');
+    }
     
     const details = {
-      agent: agent,
-      config: config.agents?.[agent] || {},
-      status: status[agent] || { status: 'idle' }
+      agent: agentName,
+      config: agentConfig, // This is the agent's own configuration block
+      status: agentStatusFromFile
     };
     
     ws.send(JSON.stringify({
@@ -539,7 +555,7 @@ function getAgentDetails(agent, ws) {
   } catch (error) {
     ws.send(JSON.stringify({
       type: 'error',
-      message: `Failed to get agent details: ${error.message}`
+      message: `Failed to get agent details for ${agentName}: ${error.message}`
     }));
   }
 }
@@ -722,13 +738,17 @@ app.get('/api/health', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 8080;
+// Jules: Changed: Use port from the new config module, with a fallback to env or default
+const PORT = config.get('web.port') || process.env.PORT || 8080;
 server.listen(PORT, () => {
+  const host = config.get('web.host') || 'localhost'; // Jules: Use host from config
   console.log(`🚀 Multi-Agent Orchestrator Master Dashboard`);
-  console.log(`📊 Dashboard: http://localhost:${PORT}`);
-  console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
-  console.log(`🤖 OpenRouter API: ${process.env.OPENROUTER_API_KEY ? '✓ Configured' : '✗ Missing'}`);
-  console.log(`💾 Supermemory API: ${process.env.SUPERMEMORY_API_KEY ? '✓ Configured' : '✗ Missing'}`);
+  console.log(`📊 Dashboard: http://${host}:${PORT}`);
+  console.log(`🔌 WebSocket: ws://${host}:${PORT}`);
+  // Jules: Changed: API key status is now checked by the config module itself at startup.
+  // The config.get('api.openrouter.apiKey') will have the key if loaded.
+  console.log(`🤖 OpenRouter API: ${config.get('api.openrouter.apiKey') ? '✓ Configured' : '✗ Missing (Check .env & config validation)'}`);
+  console.log(`💾 Supermemory API: ${config.get('api.supermemory.apiKey') && config.get('api.supermemory.enabled') ? '✓ Configured & Enabled' : (config.get('api.supermemory.apiKey') ? '✓ Configured (Disabled in config)' : '✗ Missing')}`);
   console.log(`⚡ Status: Ready`);
 });
 

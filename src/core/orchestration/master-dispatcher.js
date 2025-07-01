@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
 const { execSync } = require('child_process');
-const fs = require('fs');
+const fs = require('fs'); // fs is still used for reading/writing .stateFile and tickets.txt
 const path = require('path');
 const readline = require('readline');
+const config = require('../../config'); // Jules: Added: Use new config module
 
 class MasterAgentDispatcher {
   constructor() {
-    this.config = JSON.parse(fs.readFileSync('agent-orchestrator.config.json', 'utf8'));
+    // Jules: Removed: Old config loading. this.config is no longer needed as 'config' module is used directly.
     this.activeAssignments = {};
     this.completedTasks = [];
     this.taskQueue = [];
@@ -313,9 +314,12 @@ class MasterAgentDispatcher {
           const newAgent = await new Promise(resolve => {
             rl.question(`${task.id} currently → ${agent}. Change to (or press enter): `, resolve);
           });
-          if (newAgent && this.config.agents[newAgent]) {
+          // Jules: Changed: Check agent existence in new config structure
+          if (newAgent && config.get(`agents.definitions.${newAgent}`)) {
             // Move task to new agent
             assignments[agent] = assignments[agent].filter(t => t.id !== task.id);
+            // Ensure the new agent's task array exists
+            if (!assignments[newAgent]) assignments[newAgent] = [];
             assignments[newAgent].push(task);
           }
         }
@@ -327,11 +331,11 @@ class MasterAgentDispatcher {
     // Create the actual branches and assignments
     console.log('\n🚀 Dispatching tickets to agents...\n');
     
-    for (const [agent, tasks] of Object.entries(assignments)) {
+    for (const [agentName, tasks] of Object.entries(assignments)) { // Jules: Renamed agent to agentName for clarity
       if (tasks.length === 0) continue;
       
       for (const task of tasks) {
-        await this.createAgentTask(agent, task);
+        await this.createAgentTask(agentName, task); // Jules: Use agentName
       }
     }
     
@@ -345,15 +349,21 @@ class MasterAgentDispatcher {
     console.log('   3. Run "node master-workflow.js standardIntegration" to integrate completed work');
   }
 
-  async createAgentTask(agent, task) {
+  async createAgentTask(agentName, task) { // Jules: Renamed agent to agentName
     const taskId = task.id.toLowerCase().replace('ticket-', '');
-    const branchName = `feature/${agent}/${taskId}`;
+    // Jules: Get branchPrefix from the specific agent's definition
+    const agentConfig = config.get(`agents.definitions.${agentName}`);
+    if (!agentConfig || !agentConfig.branchPrefix) {
+        console.warn(`⚠️  Agent ${agentName} or its branchPrefix is not defined in config. Using default.`);
+    }
+    const branchPrefix = agentConfig?.branchPrefix || `feature/${agentName}`;
+    const branchName = `${branchPrefix}/${taskId}`;
     
-    console.log(`🎯 Creating task for ${agent} agent: ${task.id}`);
+    console.log(`🎯 Creating task for ${agentName} agent: ${task.id}`);
     
     // Store in active assignments
     this.activeAssignments[task.id] = {
-      agent: agent,
+      agent: agentName, // Jules: Use agentName
       branch: branchName,
       description: task.description,
       dependencies: task.dependencies,
@@ -364,13 +374,13 @@ class MasterAgentDispatcher {
     // Create a task file for the agent
     const taskFile = {
       ticket: task.id,
-      agent: agent,
+      agent: agentName, // Jules: Use agentName
       branch: branchName,
       description: task.description,
       dependencies: task.dependencies,
       notes: task.notes,
       assignedAt: new Date().toISOString(),
-      instructions: this.generateInstructions(agent, task)
+      instructions: this.generateInstructions(agentName, task) // Jules: Use agentName
     };
     
     fs.writeFileSync(
@@ -381,27 +391,27 @@ class MasterAgentDispatcher {
     console.log(`   ✓ Task file created: .agent-tasks-${task.id}.json`);
   }
 
-  generateInstructions(agent, task) {
-    const agentConfig = this.config.agents[agent];
+  generateInstructions(agentName, task) { // Jules: Renamed agent to agentName
+    const agentConfig = config.get(`agents.definitions.${agentName}`); // Jules: Use new config structure
     
     return {
       allowedPaths: agentConfig.workingPaths,
-      excludedPaths: agentConfig.excludePaths,
-      quickStart: `node agent-task.js → Select ${agent} → Enter ${task.id.toLowerCase()}`,
-      aiQuickStart: `node ai-agent.js ${task.id} ${agent}`,
+      excludedPaths: agentConfig.excludePaths || [], // Jules: Handle potentially undefined excludePaths
+      quickStart: `node agent-task.js → Select ${agentName} → Enter ${task.id.toLowerCase().replace('ticket-','')}`, // Jules: Use agentName
+      aiQuickStart: `node ai-agent.js ${task.id} ${agentName}`, // Jules: Use agentName
       guidelines: [
         `Work only in: ${agentConfig.workingPaths.join(', ')}`,
-        `Do not modify: ${agentConfig.excludePaths.join(', ')}`,
+        `Do not modify: ${(agentConfig.excludePaths || []).join(', ')}`, // Jules: Handle potentially undefined excludePaths
         'Follow existing code patterns',
         'Write tests for new functionality',
         `Commit format: feat(${task.id}): description`
       ],
-      aiEnabled: true,
-      suggestedModel: this.suggestModelForTask(task, agent)
+      aiEnabled: true, // This could also come from config if needed
+      suggestedModel: this.suggestModelForTask(task, agentName) // Jules: Use agentName
     };
   }
 
-  suggestModelForTask(task, agent) {
+  suggestModelForTask(task, agentName) { // Jules: Renamed agent to agentName
     const desc = task.description.toLowerCase();
     
     // Task complexity analysis
@@ -417,16 +427,15 @@ class MasterAgentDispatcher {
       return 'anthropic/claude-2';
     }
     
-    // Default by agent type
-    const defaults = {
-      frontend: 'openai/gpt-4',
-      backend: 'openai/gpt-4',
-      database: 'anthropic/claude-3-opus-20240229',
-      integration: 'openai/gpt-4-turbo-preview',
-      testing: 'openai/gpt-3.5-turbo'
-    };
+    // Default by agent type from config
+    const agentConfig = config.get(`agents.definitions.${agentName}`);
+    if (agentConfig && agentConfig.model) {
+      return agentConfig.model;
+    }
     
-    return defaults[agent] || 'openai/gpt-4';
+    // Fallback if agent or its model isn't in config for some reason
+    console.warn(`⚠️ Model not found for agent ${agentName} in config. Falling back to default.`);
+    return config.get('agents.definitions.general.model') || 'openai/gpt-4'; // General default
   }
 
   async checkStatus() {

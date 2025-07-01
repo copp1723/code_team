@@ -4,20 +4,21 @@ const { execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const config = require('../../config'); // Jules: Added: Use new config module
 
 class AgentTaskRunner {
   constructor() {
-    this.configFile = 'agent-orchestrator.config.json';
-    this.config = JSON.parse(fs.readFileSync(this.configFile, 'utf8'));
-    this.projectPath = this.config.project.localPath;
+    // Jules: Removed: Old config loading
+    this.projectPath = config.get('projectPath');
   }
 
   async selectAgent() {
-    const agents = Object.entries(this.config.agents);
+    const agentDefinitions = config.get('agents.definitions'); // Jules: Changed: Use new config structure
+    const agents = Object.entries(agentDefinitions);
     
     console.log('\n🤖 Select an agent:');
-    agents.forEach(([key, agent], index) => {
-      console.log(`  ${index + 1}. ${agent.name} (${key})`);
+    agents.forEach(([key, agentConfig], index) => { // Jules: Changed: agent to agentConfig for clarity
+      console.log(`  ${index + 1}. ${agentConfig.name || key} (${key})`); // Jules: Changed: Use agentConfig.name
     });
     
     const rl = readline.createInterface({
@@ -59,11 +60,12 @@ class AgentTaskRunner {
   }
 
   generateTaskScript(agentKey, taskId) {
-    const agent = this.config.agents[agentKey];
-    const branchName = `${agent.branchPrefix}/${taskId}`;
+    const agentConfig = config.get(`agents.definitions.${agentKey}`); // Jules: Changed: Use new config structure
+    const branchName = `${agentConfig.branchPrefix}/${taskId}`;
+    const projectMasterBranch = config.get('projectMasterBranch'); // Jules: Added: Get master branch from config
     
     const script = `#!/bin/bash
-# Auto-generated script for ${agent.name} - Task: ${taskId}
+# Auto-generated script for ${agentConfig.name || agentKey} - Task: ${taskId}
 # Generated at: ${new Date().toISOString()}
 
 set -e  # Exit on error
@@ -74,7 +76,7 @@ AGENT_KEY="${agentKey}"
 
 cd "$PROJECT_PATH"
 
-echo "🚀 Starting ${agent.name} on task: ${taskId}"
+echo "🚀 Starting ${agentConfig.name || agentKey} on task: ${taskId}"
 
 # 1. Ensure we're on the latest base branch
 echo "📥 Fetching latest changes..."
@@ -82,7 +84,7 @@ git fetch origin
 
 # 2. Create and switch to agent branch
 echo "🌿 Creating branch: $BRANCH_NAME"
-git checkout -b "$BRANCH_NAME" "origin/${this.config.project.baseBranch}"
+git checkout -b "$BRANCH_NAME" "origin/${projectMasterBranch}"
 
 # 3. Create work boundaries file
 cat > .agent-work-boundaries.json << EOF
@@ -90,8 +92,8 @@ cat > .agent-work-boundaries.json << EOF
   "agent": "${agentKey}",
   "taskId": "${taskId}",
   "branch": "$BRANCH_NAME",
-  "allowedPaths": ${JSON.stringify(agent.workingPaths, null, 2)},
-  "excludedPaths": ${JSON.stringify(agent.excludePaths, null, 2)},
+  "allowedPaths": ${JSON.stringify(agentConfig.workingPaths, null, 2)},
+  "excludedPaths": ${JSON.stringify(agentConfig.excludePaths || [], null, 2)}, # Jules: Added: Handle potentially undefined excludePaths
   "startTime": "${new Date().toISOString()}"
 }
 EOF
@@ -165,7 +167,7 @@ chmod +x .git/hooks/pre-commit
 # 5. Create agent workspace summary
 echo "📊 Creating workspace summary..."
 cat > .agent-workspace.md << EOF
-# ${agent.name} Workspace
+# ${agentConfig.name || agentKey} Workspace
 
 **Task ID:** ${taskId}  
 **Branch:** $BRANCH_NAME  
@@ -174,10 +176,10 @@ cat > .agent-workspace.md << EOF
 ## Work Boundaries
 
 ### Allowed Paths
-${agent.workingPaths.map(p => '- `' + p + '`').join('\n')}
+${agentConfig.workingPaths.map(p => '- `' + p + '`').join('\n')}
 
 ### Excluded Paths  
-${agent.excludePaths.map(p => '- `' + p + '`').join('\n')}
+${(agentConfig.excludePaths || []).map(p => '- `' + p + '`').join('\n')}
 
 ## Task Guidelines
 
@@ -201,17 +203,17 @@ ${agent.excludePaths.map(p => '- `' + p + '`').join('\n')}
 cat .agent-work-boundaries.json
 
 # Run tests for your area
-npm test -- ${agent.workingPaths[0]}
+npm test -- ${agentConfig.workingPaths[0]}
 
 # Commit your changes
 git add .
-git commit -m "${agent.name}: <description>"
+git commit -m "${agentConfig.name || agentKey}: <description>"
 
 # Push your branch
 git push -u origin $BRANCH_NAME
 
 # Create PR
-gh pr create --base ${this.config.project.baseBranch} --title "${agent.name}: ${taskId}"
+gh pr create --base ${projectMasterBranch} --title "${agentConfig.name || agentKey}: ${taskId}"
 \`\`\`
 EOF
 
@@ -220,10 +222,10 @@ echo ""
 echo "✅ Agent workspace initialized!"
 echo ""
 echo "📁 Working directories:"
-${agent.workingPaths.map(p => `echo "   - $PROJECT_PATH/${p}"`).join('\n')}
+${agentConfig.workingPaths.map(p => `echo "   - $PROJECT_PATH/${p}"`).join('\n')}
 echo ""
 echo "🚫 Excluded directories:"
-${agent.excludePaths.map(p => `echo "   - $PROJECT_PATH/${p}"`).join('\n')}
+${(agentConfig.excludePaths || []).map(p => `echo "   - $PROJECT_PATH/${p}"`).join('\n')}
 echo ""
 echo "📝 Next steps:"
 echo "   1. Make your changes in the allowed directories"

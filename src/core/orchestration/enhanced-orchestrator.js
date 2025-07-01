@@ -6,16 +6,20 @@
  */
 
 const { execSync } = require('child_process');
-const fs = require('fs');
+const fs = require('fs'); // fs might still be needed for other operations, but not for main config loading
 const path = require('path');
+const config = require('../../config'); // Jules: Added: Use new config module
 
 class EnhancedOrchestrator {
   constructor() {
-    this.configPath = path.join(__dirname, 'agent-orchestrator.config.json');
-    this.config = JSON.parse(fs.readFileSync(this.configPath, 'utf8'));
-    
-    // Add senior agent configuration
-    this.seniorConfig = {
+    // Jules: Removed: Old config loading. this.configPath is no longer needed.
+    // this.config will now refer to the global config object.
+    // The specific agent-orchestrator.config.json in this directory is now obsolete.
+
+    // Add senior agent configuration - this could come from the main config if defined there
+    // For now, keeping it as a local property. If it needs to be configurable,
+    // it should be part of the main agent-orchestrator.config.json under a suitable key.
+    this.seniorConfig = config.get('seniorAgentSettings') || { // Jules: Example: Try to get from main config or use default
       minQualityScore: 85,
       requiresArchitecturalReview: true,
       mandatoryPatterns: {
@@ -50,32 +54,40 @@ class EnhancedOrchestrator {
     }
     
     // Create enhanced configuration
-    const enhancedConfig = {
-      ...this.config,
-      seniorCapabilities: {
-        enabled: true,
+    // Jules: This section previously modified and saved `this.config`.
+    // The global config should not be modified at runtime by this module.
+    // If these `seniorCapabilities` need to be dynamic, they should be managed
+    // as part of this class's state, or the application should be restarted
+    // if the main config file is changed.
+    // For now, we assume `seniorCapabilities` could be part of the main config
+    // or are defaults used by this orchestrator.
+
+    // Example: Accessing a pre-defined senior capabilities section from the main config
+    const seniorCapabilitiesConfig = config.get('seniorCapabilities') || {
+        enabled: true, // Default if not in main config
         memorySystem: {
-          enabled: true,
+          enabled: !!config.get('api.supermemory.apiKey'), // Jules: Base on actual key presence
           provider: 'supermemory',
-          apiKey: process.env.SUPERMEMORY_API_KEY
+          // apiKey is already handled by the main config module
         },
-        aiModels: {
+        aiModels: config.get('models.senior') || { // Example: models.senior in main config
           analysis: 'anthropic/claude-3-opus-20240229',
           implementation: 'openai/gpt-4-turbo-preview',
           review: 'anthropic/claude-3-sonnet-20240229',
           optimization: 'deepseek/deepseek-coder-33b-instruct'
         },
-        qualityRequirements: this.seniorConfig.qualityGates,
-        patterns: this.seniorConfig.mandatoryPatterns
-      }
+        qualityRequirements: this.seniorConfig.qualityGates, // From local this.seniorConfig
+        patterns: this.seniorConfig.mandatoryPatterns // From local this.seniorConfig
     };
     
-    // Save enhanced configuration
-    fs.writeFileSync(this.configPath, JSON.stringify(enhancedConfig, null, 2));
-    console.log('✅ Senior configuration saved\n');
+    // Jules: Removed: fs.writeFileSync(this.configPath, JSON.stringify(enhancedConfig, null, 2));
+    // Configuration should not be written back by this module.
+    console.log('✅ Senior capabilities configured (using global config and defaults).\n');
     
     // Initialize knowledge base for each agent
-    const agents = ['frontend', 'backend', 'database'];
+    // Jules: Use agent list from the main config if appropriate, or keep this static list.
+    const agentDefinitions = config.get('agents.definitions');
+    const agents = agentDefinitions ? Object.keys(agentDefinitions).filter(k => ['frontend', 'backend', 'database'].includes(k)) : ['frontend', 'backend', 'database'];
     for (const agent of agents) {
       console.log(`📚 Initializing ${agent} knowledge base...`);
       execSync(`node agent-memory-system.js init ${agent}`, { stdio: 'inherit' });

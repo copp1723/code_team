@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 
 const { execSync, spawn } = require('child_process');
-const fs = require('fs');
+const fs = require('fs'); // fs is still used for statusFile and lockFile
 const path = require('path');
+const config = require('../../config'); // Jules: Added: Use new config module
 
 class MultiAgentOrchestrator {
-  constructor(configPath) {
-    this.config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    this.projectPath = this.config.project.localPath;
-    this.statusFile = path.join(this.projectPath, this.config.communication.statusFile);
-    this.lockFile = path.join(this.projectPath, this.config.communication.lockFile);
+  constructor() { // Jules: Removed configPath parameter
+    // Jules: Changed: Use the global config module
+    this.projectPath = config.get('projectPath');
+    // Jules: Changed: Get communication settings from the new config structure
+    this.statusFile = path.join(this.projectPath, config.get('agentCommunication.statusFile'));
+    this.lockFile = path.join(this.projectPath, config.get('agentCommunication.lockFile'));
     this.agentStatus = {};
     this.fileLocks = {};
   }
@@ -20,8 +22,10 @@ class MultiAgentOrchestrator {
     this.loadLocks();
     
     // Ensure we're on the base branch and up to date
-    this.exec(`git checkout ${this.config.project.baseBranch}`);
-    this.exec('git pull origin ' + this.config.project.baseBranch);
+    // Jules: Changed: Get baseBranch (projectMasterBranch) from config
+    const baseBranch = config.get('projectMasterBranch') || 'main';
+    this.exec(`git checkout ${baseBranch}`);
+    this.exec(`git pull origin ${baseBranch}`);
   }
 
   exec(command, options = {}) {
@@ -58,12 +62,18 @@ class MultiAgentOrchestrator {
   }
 
   createAgentBranch(agentKey, taskId) {
-    const agent = this.config.agents[agentKey];
-    const branchName = `${agent.branchPrefix}/${taskId}`;
+    // Jules: Changed: Get agent definition from new config structure
+    const agentConfig = config.get(`agents.definitions.${agentKey}`);
+    if (!agentConfig) {
+      console.error(`❌ Agent configuration for '${agentKey}' not found.`);
+      throw new Error(`Agent configuration for '${agentKey}' not found.`);
+    }
+    const branchName = `${agentConfig.branchPrefix}/${taskId}`;
+    const baseBranch = config.get('projectMasterBranch') || 'main'; // Jules: Use new config
     
     try {
       // Create branch from latest base
-      this.exec(`git checkout -b ${branchName} ${this.config.project.baseBranch}`);
+      this.exec(`git checkout -b ${branchName} ${baseBranch}`); // Jules: Use baseBranch from config
       
       // Update agent status
       this.agentStatus[agentKey] = {
@@ -74,25 +84,26 @@ class MultiAgentOrchestrator {
       };
       this.saveStatus();
       
-      console.log(`✅ Created branch ${branchName} for ${agent.name}`);
+      console.log(`✅ Created branch ${branchName} for ${agentConfig.name || agentKey}`); // Jules: Use agentConfig.name
       return branchName;
     } catch (error) {
-      console.error(`❌ Failed to create branch for ${agent.name}:`, error.message);
+      console.error(`❌ Failed to create branch for ${agentConfig.name || agentKey}:`, error.message); // Jules: Use agentConfig.name
       throw error;
     }
   }
 
   canAccessFile(agentKey, filePath) {
-    const agent = this.config.agents[agentKey];
+    const agentConfig = config.get(`agents.definitions.${agentKey}`); // Jules: Use new config structure
+    if (!agentConfig) return false; // Agent not defined
     const relativePath = path.relative(this.projectPath, filePath);
     
     // Check if file is in agent's working paths
-    const inWorkingPath = agent.workingPaths.some(wp => 
+    const inWorkingPath = agentConfig.workingPaths.some(wp =>
       relativePath.startsWith(wp) || relativePath.includes(wp.replace('**/', ''))
     );
     
     // Check if file is in excluded paths
-    const inExcludedPath = agent.excludePaths.some(ep => 
+    const inExcludedPath = (agentConfig.excludePaths || []).some(ep => // Jules: Handle undefined excludePaths
       relativePath.startsWith(ep) || relativePath.includes(ep.replace('**/', ''))
     );
     
@@ -136,14 +147,19 @@ class MultiAgentOrchestrator {
   }
 
   syncAgent(agentKey) {
-    const agent = this.config.agents[agentKey];
+    const agentConfig = config.get(`agents.definitions.${agentKey}`); // Jules: Use new config
+    if (!agentConfig) {
+      console.log(`⏭️  Agent ${agentKey} not defined, skipping sync`);
+      return;
+    }
     const status = this.agentStatus[agentKey];
     
     if (!status || status.status !== 'active') {
-      console.log(`⏭️  ${agent.name} is not active, skipping sync`);
+      console.log(`⏭️  ${agentConfig.name || agentKey} is not active, skipping sync`); // Jules: Use agentConfig.name
       return;
     }
     
+    const baseBranch = config.get('projectMasterBranch') || 'main'; // Jules: Use new config
     try {
       // Stash any uncommitted changes
       this.exec('git stash');
@@ -152,7 +168,7 @@ class MultiAgentOrchestrator {
       this.exec('git fetch origin');
       
       // Rebase on base branch
-      this.exec(`git rebase origin/${this.config.project.baseBranch}`);
+      this.exec(`git rebase origin/${baseBranch}`); // Jules: Use baseBranch from config
       
       // Pop stashed changes
       try {
@@ -161,9 +177,9 @@ class MultiAgentOrchestrator {
         // No stash to pop
       }
       
-      console.log(`✅ Synced ${agent.name} with base branch`);
+      console.log(`✅ Synced ${agentConfig.name || agentKey} with base branch`); // Jules: Use agentConfig.name
     } catch (error) {
-      console.error(`❌ Sync failed for ${agent.name}:`, error.message);
+      console.error(`❌ Sync failed for ${agentConfig.name || agentKey}:`, error.message); // Jules: Use agentConfig.name
       
       // Abort rebase if in progress
       try {
@@ -175,18 +191,23 @@ class MultiAgentOrchestrator {
   }
 
   mergeAgent(agentKey, message) {
-    const agent = this.config.agents[agentKey];
+    const agentConfig = config.get(`agents.definitions.${agentKey}`); // Jules: Use new config
+    if (!agentConfig) {
+      console.log(`⏭️  Agent ${agentKey} not defined, skipping merge`);
+      return;
+    }
     const status = this.agentStatus[agentKey];
     
     if (!status || status.status !== 'active') {
-      console.log(`⏭️  ${agent.name} has no active branch`);
+      console.log(`⏭️  ${agentConfig.name || agentKey} has no active branch`); // Jules: Use agentConfig.name
       return;
     }
     
+    const baseBranch = config.get('projectMasterBranch') || 'main'; // Jules: Use new config
     try {
       // Commit any pending changes
       this.exec('git add -A');
-      this.exec(`git commit -m "${message || `${agent.name}: ${status.taskId}`}"`);
+      this.exec(`git commit -m "${message || `${agentConfig.name || agentKey}: ${status.taskId}`}"`); // Jules: Use agentConfig.name
       
       // Push branch
       this.exec(`git push -u origin ${status.currentBranch}`);
@@ -194,11 +215,11 @@ class MultiAgentOrchestrator {
       // Create pull request (using GitHub CLI if available)
       try {
         const prUrl = this.exec(
-          `gh pr create --base ${this.config.project.baseBranch} ` +
-          `--head ${status.currentBranch} --title "${agent.name}: ${status.taskId}" ` +
-          `--body "Automated PR from ${agent.name}"`
+          `gh pr create --base ${baseBranch} ` + // Jules: Use baseBranch from config
+          `--head ${status.currentBranch} --title "${agentConfig.name || agentKey}: ${status.taskId}" ` + // Jules: Use agentConfig.name
+          `--body "Automated PR from ${agentConfig.name || agentKey}"` // Jules: Use agentConfig.name
         );
-        console.log(`✅ Created PR for ${agent.name}: ${prUrl}`);
+        console.log(`✅ Created PR for ${agentConfig.name || agentKey}: ${prUrl}`); // Jules: Use agentConfig.name
       } catch (e) {
         console.log(`ℹ️  Pushed branch ${status.currentBranch}. Create PR manually.`);
       }
@@ -212,28 +233,35 @@ class MultiAgentOrchestrator {
       this.unlockFiles(agentKey);
       
     } catch (error) {
-      console.error(`❌ Merge failed for ${agent.name}:`, error.message);
+      console.error(`❌ Merge failed for ${agentConfig.name || agentKey}:`, error.message); // Jules: Use agentConfig.name
       throw error;
     }
   }
 
   runPeriodicSync() {
-    const interval = this.parseInterval(this.config.conflictResolution.updateFrequency);
+    // Jules: Get updateFrequency from new config structure, use config.parseInterval helper
+    const updateFrequencyString = config.get('conflictResolution.updateFrequency');
+    const interval = config.parseInterval(updateFrequencyString) || (30 * 60 * 1000); // Default 30 mins if not parsable
     
     setInterval(() => {
       console.log('\n🔄 Running periodic sync...');
       
-      for (const agentKey of Object.keys(this.config.agents)) {
-        try {
-          this.syncAgent(agentKey);
-        } catch (error) {
-          console.error(`Failed to sync ${agentKey}:`, error.message);
+      const agentDefinitions = config.get('agents.definitions'); // Jules: Use new config
+      if (agentDefinitions) {
+        for (const agentKey of Object.keys(agentDefinitions)) {
+          try {
+            this.syncAgent(agentKey);
+          } catch (error) {
+            console.error(`Failed to sync ${agentKey}:`, error.message);
+          }
         }
       }
     }, interval);
   }
 
-  parseInterval(frequency) {
+  parseInterval(frequency) { // Jules: This method is now part of the config module. Can be removed if not used elsewhere locally.
+                              // For now, keeping it to ensure no breakage if it was called directly by other parts of this file not yet seen.
+                              // However, runPeriodicSync now uses config.parseInterval.
     const match = frequency.match(/(\d+)([mh])/);
     if (!match) return 30 * 60 * 1000; // Default 30 minutes
     
@@ -246,27 +274,30 @@ class MultiAgentOrchestrator {
     console.log('\n📊 Agent Status:');
     console.log('================');
     
-    for (const [agentKey, agent] of Object.entries(this.config.agents)) {
-      const status = this.agentStatus[agentKey];
-      
-      if (status) {
-        console.log(`\n${agent.name}:`);
-        console.log(`  Branch: ${status.currentBranch}`);
-        console.log(`  Task: ${status.taskId}`);
-        console.log(`  Status: ${status.status}`);
-        console.log(`  Started: ${status.startTime}`);
+    const agentDefinitions = config.get('agents.definitions'); // Jules: Use new config
+    if (agentDefinitions) {
+      for (const [agentKey, agentConfig] of Object.entries(agentDefinitions)) { // Jules: Iterate agentDefinitions
+        const status = this.agentStatus[agentKey];
         
-        // Show locked files
-        const lockedFiles = Object.entries(this.fileLocks)
-          .filter(([, lock]) => lock.agent === agentKey)
-          .map(([file]) => file);
-        
-        if (lockedFiles.length > 0) {
-          console.log(`  Locked files: ${lockedFiles.length}`);
-          lockedFiles.forEach(f => console.log(`    - ${f}`));
+        if (status) {
+          console.log(`\n${agentConfig.name || agentKey}:`); // Jules: Use agentConfig.name
+          console.log(`  Branch: ${status.currentBranch}`);
+          console.log(`  Task: ${status.taskId}`);
+          console.log(`  Status: ${status.status}`);
+          console.log(`  Started: ${status.startTime}`);
+
+          // Show locked files
+          const lockedFiles = Object.entries(this.fileLocks)
+            .filter(([, lock]) => lock.agent === agentKey)
+            .map(([file]) => file);
+
+          if (lockedFiles.length > 0) {
+            console.log(`  Locked files: ${lockedFiles.length}`);
+            lockedFiles.forEach(f => console.log(`    - ${f}`));
+          }
+        } else {
+          console.log(`\n${agentConfig.name || agentKey}: Inactive`); // Jules: Use agentConfig.name
         }
-      } else {
-        console.log(`\n${agent.name}: Inactive`);
       }
     }
     
@@ -277,9 +308,8 @@ class MultiAgentOrchestrator {
 // CLI Interface
 const args = process.argv.slice(2);
 const command = args[0];
-const orchestrator = new MultiAgentOrchestrator(
-  path.join(__dirname, 'agent-orchestrator.config.json')
-);
+// Jules: Removed configPath argument as it's no longer needed by the constructor
+const orchestrator = new MultiAgentOrchestrator();
 
 try {
   switch (command) {
@@ -303,8 +333,12 @@ try {
         orchestrator.syncAgent(syncAgent);
       } else {
         // Sync all agents
-        for (const agentKey of Object.keys(orchestrator.config.agents)) {
-          orchestrator.syncAgent(agentKey);
+        // Jules: Iterate over keys from config's agent definitions
+        const agentDefsToSync = config.get('agents.definitions');
+        if (agentDefsToSync) {
+          for (const agentKeyToSync of Object.keys(agentDefsToSync)) {
+            orchestrator.syncAgent(agentKeyToSync);
+          }
         }
       }
       break;
